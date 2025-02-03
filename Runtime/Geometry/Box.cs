@@ -34,9 +34,17 @@ namespace SensenToolkit
             if (forward.HasValue && up.HasValue) right = Vector3.Cross(forward.Value, up.Value);
             if (forward.HasValue && right.HasValue) up = Vector3.Cross(right.Value, forward.Value);
             if (up.HasValue && right.HasValue) forward = Vector3.Cross(up.Value, right.Value);
-            Right = right.Value;
-            Up = up.Value;
-            Forward = forward.Value;
+
+            Assertx.IsFalse(
+                forward.Value.sqrMagnitude < Mathf.Epsilon
+                || up.Value.sqrMagnitude < Mathf.Epsilon
+                || right.Value.sqrMagnitude < Mathf.Epsilon,
+                $"Forward, Up, Right must not be zero vectors. (forward: {forward.Value}, up: {up.Value}, right: {right.Value})"
+            );
+
+            Right = right.Value.normalized;
+            Up = up.Value.normalized;
+            Forward = forward.Value.normalized;
 
             if (extents.HasValue) size = extents.Value * 2f;
             if (size.HasValue) extents = size.Value / 2f;
@@ -73,6 +81,16 @@ namespace SensenToolkit
                 collider.transform.SetPositionAndRotation(WorldCenter, Orientation);
             }
             collider.size = Size;
+        }
+
+        public Vector3 TransformDirection(Vector3 direction)
+        {
+            return Orientation * direction;
+        }
+
+        public Vector3 InverseTransformDirection(Vector3 direction)
+        {
+            return Quaternion.Inverse(Orientation) * direction;
         }
 
         public static Box FromBoxCollider(BoxCollider collider)

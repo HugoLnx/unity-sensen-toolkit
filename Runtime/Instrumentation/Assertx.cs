@@ -61,7 +61,7 @@ namespace SensenToolkit
         [Conditional("UNITY_EDITOR")]
         public static void IsNormalized(Vector2 direction, bool acceptZero = true)
         {
-            IsNormalized(direction, acceptZero);
+            IsNormalized(new Vector3(direction.x, direction.y, 0), acceptZero);
         }
 
         public static void OnlyOneHasValue(params object[] objects)
@@ -93,6 +93,11 @@ namespace SensenToolkit
         public static void IsDifferent(Vector2 a, Vector2 b, string message = null)
         {
             IsTrue((a - b).sqrMagnitude > Mathf.Epsilon, message ?? "Vectors shouldn't be equal");
+        }
+
+        public static void IsNotMagnitudeZero(Vector3 vec)
+        {
+            IsTrue(vec.sqrMagnitude > Mathf.Epsilon, "Vector3 shouldn't have zero magnitude");
         }
     }
 }
