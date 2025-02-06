@@ -12,15 +12,20 @@ namespace SensenToolkit
             return WithColorInstance.UseColor(color);
         }
 
-        public static void DrawArrow(Vector2 from, Vector2 to, float extendBy = 1f)
+        public static void DrawArrow(Vector3 from, Vector3 to, float extendBy = 1f)
         {
-            Vector2 rawVector = to - from;
+            Vector3 rawVector = to - from;
             to = from + (rawVector * extendBy);
-            Vector2 arrowVector = to - from;
+            Vector3 arrowVector = to - from;
             Gizmos.DrawLine(from, from + arrowVector);
-            Vector2 arrowHeadVector = -arrowVector * 0.1f;
-            Gizmos.DrawLine(to, to + arrowHeadVector.RotateBy(30f));
-            Gizmos.DrawLine(to, to + arrowHeadVector.RotateBy(-30));
+            Vector3 arrowHeadVector = -arrowVector * 0.3f;
+            const float Angle = 30f;
+            Gizmos.DrawLine(to, to + Quaternion.Euler(0, 0, Angle) * arrowHeadVector);
+            Gizmos.DrawLine(to, to + Quaternion.Euler(0, 0, -Angle) * arrowHeadVector);
+            Gizmos.DrawLine(to, to + Quaternion.Euler(0, Angle, 0) * arrowHeadVector);
+            Gizmos.DrawLine(to, to + Quaternion.Euler(0, -Angle, 0) * arrowHeadVector);
+            Gizmos.DrawLine(to, to + Quaternion.Euler(Angle, 0, 0) * arrowHeadVector);
+            Gizmos.DrawLine(to, to + Quaternion.Euler(-Angle, 0, 0) * arrowHeadVector);
         }
 
         public static void DebugDrawPointAsterist(Vector3 point, Color? color = null, float size = 0.2f, float duration = 0.5f)

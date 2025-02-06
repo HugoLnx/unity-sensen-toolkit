@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace SensenToolkit
 {
+    [Serializable]
     public readonly struct Box
     {
         public readonly Vector3 Right;
@@ -23,17 +24,31 @@ namespace SensenToolkit
         public readonly Quaternion Orientation => Quaternion.LookRotation(Forward, Up);
         public readonly Vector3 WorldHalfExtentsScaled(float x, float y, float z) => HalfExtentsRight * x + HalfExtentsUp * y + HalfExtentsForward * z;
         public readonly Vector3 WorldSizeScaled(float x, float y, float z) => SizeRight * x + SizeUp * y + SizeForward * z;
+        public readonly bool IsValid =>
+            Size.x > 0
+            && Size.y > 0
+            && Size.z > 0
+            && Up.sqrMagnitude > Mathf.Epsilon
+            && Right.sqrMagnitude > Mathf.Epsilon
+            && Forward.sqrMagnitude > Mathf.Epsilon;
 
-        public Box(Vector3 worldCenter, Vector3? forward = null, Vector3? up = null, Vector3? right = null, Vector3? extents = null, Vector3? size = null)
+        public Box(
+            Vector3 worldCenter,
+            Vector3? forward = null,
+            Vector3? up = null,
+            Vector3? right = null,
+            Vector3? halfExtents = null,
+            Vector3? size = null
+        )
         {
             int directionValueCount = (forward.HasValue ? 1 : 0) + (up.HasValue ? 1 : 0) + (right.HasValue ? 1 : 0);
             if (directionValueCount != 2) throw new ArgumentException("Exactly 2 of Forward, Up, Right must be set");
-            if (extents.HasValue && size.HasValue) throw new ArgumentException("Only one of Extents, Size must be set");
-            if (!extents.HasValue && !size.HasValue) throw new ArgumentException("One of Extents, Size must be set");
+            if (halfExtents.HasValue && size.HasValue) throw new ArgumentException("Only one of HalfExtents, Size must be set");
+            if (!halfExtents.HasValue && !size.HasValue) throw new ArgumentException("One of HalfExtents, Size must be set");
 
             if (forward.HasValue && up.HasValue) right = Vector3.Cross(forward.Value, up.Value);
-            if (forward.HasValue && right.HasValue) up = Vector3.Cross(right.Value, forward.Value);
-            if (up.HasValue && right.HasValue) forward = Vector3.Cross(up.Value, right.Value);
+            else if (forward.HasValue && right.HasValue) up = Vector3.Cross(right.Value, forward.Value);
+            else if (up.HasValue && right.HasValue) forward = Vector3.Cross(up.Value, right.Value);
 
             Assertx.IsFalse(
                 forward.Value.sqrMagnitude < Mathf.Epsilon
@@ -46,9 +61,9 @@ namespace SensenToolkit
             Up = up.Value.normalized;
             Forward = forward.Value.normalized;
 
-            if (extents.HasValue) size = extents.Value * 2f;
-            if (size.HasValue) extents = size.Value / 2f;
-            HalfExtents = extents.Value;
+            if (halfExtents.HasValue) size = halfExtents.Value * 2f;
+            else if (size.HasValue) halfExtents = size.Value / 2f;
+            HalfExtents = halfExtents.Value;
             Size = size.Value;
 
             WorldCenter = worldCenter;
