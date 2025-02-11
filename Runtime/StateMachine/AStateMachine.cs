@@ -17,6 +17,7 @@ namespace SensenToolkit
         protected Dictionary<TStateId, StateNode<TState, TStateId, TMessage>> Nodes = new();
         protected StateNode<TState, TStateId, TMessage> CurrentNode;
         private TStateId[] _allStateIds;
+        public event Action<TStateId> OnStateChange;
 
 #if UNITY_EDITOR
         [Header("FSM Debug")]
@@ -64,6 +65,16 @@ namespace SensenToolkit
             EnterNode(nextNode);
         }
 
+        public bool IsStateActive(TStateId stateId)
+        {
+            TStateId? currentStateId = CurrentNode?.State?.Id;
+            if (currentStateId == null) return false;
+            if (currentStateId.Value.Equals(stateId)) return true;
+            HashSet<TStateId> currentGroupIds = CurrentNode.State.GroupIds;
+            if (currentGroupIds == null) return false;
+            return currentGroupIds.Contains(stateId);
+        }
+
         private void ExitNode(StateNode<TState, TStateId, TMessage> node)
         {
             TState state = node.State;
@@ -99,6 +110,7 @@ namespace SensenToolkit
             }
             CurrentNode = node;
             nextState.OnStateEnterInternal();
+            OnStateChange?.Invoke(nextState.Id);
         }
 
         protected TransitionAdder<TState, TStateId, TMessage> AddTransitionFrom(params TStateId[] from)
