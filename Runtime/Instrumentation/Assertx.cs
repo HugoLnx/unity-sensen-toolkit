@@ -55,7 +55,7 @@ namespace SensenToolkit
         {
             float sqrMag = direction.sqrMagnitude;
             bool isNormalized = Mathf.Approximately(sqrMag, 1f) || (acceptZero && Mathf.Approximately(sqrMag, 0f));
-            IsTrue(isNormalized, "Vector3 is not normalized");
+            IsTrue(isNormalized, $"Vector3 {direction} is not normalized (sqrMagnitude: {sqrMag})");
         }
 
         [Conditional("UNITY_EDITOR")]
