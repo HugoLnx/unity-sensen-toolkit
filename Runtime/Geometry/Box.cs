@@ -135,7 +135,7 @@ namespace SensenToolkit
             }
         }
 
-        public void DebugDrawGizmos()
+        public void DrawGizmos()
         {
             Gizmos.DrawLineList(BuildDrawPoints());
         }
