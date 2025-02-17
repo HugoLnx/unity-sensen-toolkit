@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -8,7 +9,7 @@ namespace SensenToolkit
         private static Dictionary<int, int> s_masksByLayer;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void Init()
+        private static void InitalizeStatics()
         {
             s_masksByLayer = new Dictionary<int, int>();
             for (int i = 0; i < 32; i++)
@@ -25,18 +26,28 @@ namespace SensenToolkit
             }
         }
 
+        [Conditional("UNITY_EDITOR")]
+        private static void InitializeStaticsInEditor()
+        {
+            if (Application.isPlaying) return;
+            InitalizeStatics();
+        }
+
         public static int MaskForWhatCollidesWith(int layer)
         {
+            InitializeStaticsInEditor();
             return s_masksByLayer[layer];
         }
 
         public static int MaskForWhatDoesntCollideWith(int layer)
         {
+            InitializeStaticsInEditor();
             return ~s_masksByLayer[layer];
         }
 
         public static int BuildLayerMask(params int[] layers)
         {
+            InitializeStaticsInEditor();
             int mask = 0x00;
             foreach (int layer in layers)
             {
