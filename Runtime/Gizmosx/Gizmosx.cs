@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -12,13 +13,21 @@ namespace SensenToolkit
             return WithColorInstance.UseColor(color);
         }
 
-        public static void DrawArrow(Vector3 from, Vector3 to, float extendBy = 1f)
+        public static void DrawArrow(
+            Vector3 from,
+            Vector3 to,
+            float extendBy = 1f,
+            float headSizeModifier = 0.3f,
+            float marginStart = 0f,
+            float marginEnd = 0f
+        )
         {
             Vector3 rawVector = to - from;
             to = from + (rawVector * extendBy);
+            ApplyMarginsToLine(ref from, ref to, marginStart, marginEnd);
             Vector3 arrowVector = to - from;
             Gizmos.DrawLine(from, from + arrowVector);
-            Vector3 arrowHeadVector = -arrowVector * 0.3f;
+            Vector3 arrowHeadVector = -arrowVector * headSizeModifier;
             const float Angle = 30f;
             Gizmos.DrawLine(to, to + Quaternion.Euler(0, 0, Angle) * arrowHeadVector);
             Gizmos.DrawLine(to, to + Quaternion.Euler(0, 0, -Angle) * arrowHeadVector);
@@ -26,6 +35,13 @@ namespace SensenToolkit
             Gizmos.DrawLine(to, to + Quaternion.Euler(0, -Angle, 0) * arrowHeadVector);
             Gizmos.DrawLine(to, to + Quaternion.Euler(Angle, 0, 0) * arrowHeadVector);
             Gizmos.DrawLine(to, to + Quaternion.Euler(-Angle, 0, 0) * arrowHeadVector);
+        }
+
+        private static void ApplyMarginsToLine(ref Vector3 from, ref Vector3 to, float marginStart, float marginEnd)
+        {
+            Vector3 vec = to - from;
+            from += vec * marginStart;
+            to -= vec * marginEnd;
         }
 
         public static void DebugDrawPointAsterist(Vector3 point, Color? color = null, float size = 0.2f, float duration = 0.5f)
