@@ -9,10 +9,20 @@ namespace SensenToolkit
 {
     public static class MonoBehaviourExtensionMethods
     {
+        public static void TryStopCoroutine(this MonoBehaviour mono, ref Coroutine coroutine)
+        {
+            if (coroutine != null)
+            {
+                mono.StopCoroutine(coroutine);
+                coroutine = null;
+            }
+        }
+
         public static IEnumerator StartCoroutinesInParallel(this MonoBehaviour mono, params IEnumerator[] enumerators)
         {
             return StartCoroutinesInParallel(mono, (IEnumerable<IEnumerator>) enumerators);
         }
+
         public static IEnumerator StartCoroutinesInParallel(this MonoBehaviour mono, IEnumerable<IEnumerator> enumerators)
         {
             List<Coroutine> coroutines = enumerators
