@@ -1,3 +1,4 @@
+using System.Net.NetworkInformation;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -65,6 +66,15 @@ namespace SensenToolkit
                 y ?? v3.y,
                 z ?? v3.z
             );
+        }
+
+        public static Vector3 FindAPerpendicular(this Vector3 v3)
+        {
+            if (v3.x == 0) return new(0, -v3.z, v3.y);
+            if (v3.y == 0) return new(-v3.z, 0, v3.x);
+            if (v3.z == 0) return new(-v3.y, v3.x, 0);
+            float mag = v3.magnitude;
+            return Vector3.Cross(v3, v3.With(x: v3.x + 1f)).normalized * mag;
         }
     }
 }

@@ -52,13 +52,14 @@ namespace SensenToolkit
             Debug.DrawLine(point + new Vector3(1f, -1f, 1f) * size, point - new Vector3(1f, -1f, 1f) * size, color.Value, duration);
         }
 
-        public static void DrawCircle(Vector3 center, float radius, Vector3 axis, int segments = 10)
+        public static void DrawCircle(Vector3 center, float radius, Vector3 axis, int segments = 18)
         {
-            Vector3 firstPoint = center + Quaternion.AngleAxis(360f / segments, axis) * (Vector3.right * radius);
+            Vector3 perp = axis.FindAPerpendicular();
+            Vector3 firstPoint = center + Quaternion.AngleAxis(360f / segments, axis) * (perp * radius);
             Vector3 previousPoint = firstPoint;
             for (int i = 1; i <= segments; i++)
             {
-                Vector3 nextPoint = center + Quaternion.AngleAxis(360f / segments * i, axis) * (Vector3.right * radius);
+                Vector3 nextPoint = center + Quaternion.AngleAxis(360f / segments * i, axis) * (perp * radius);
                 Gizmos.DrawLine(previousPoint, nextPoint);
                 previousPoint = nextPoint;
             }
