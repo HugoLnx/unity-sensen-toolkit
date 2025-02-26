@@ -13,7 +13,7 @@ namespace SensenToolkit
             float duration,
             float? startValue = null,
             float endValue = 1f,
-            bool setImmediately = true
+            bool setImmediately = false
         )
         {
             float gv = startValue ?? 0f;
@@ -32,6 +32,11 @@ namespace SensenToolkit
                 tween = tween.From(startValue.Value, setImmediately: setImmediately);
             }
             return tween;
+        }
+
+        public static Tween FromZeroToOne(System.Action<float> action, float duration, bool setImmediately = false)
+        {
+            return FromTo(action, duration, startValue: 0f, endValue: 1f, setImmediately: setImmediately);
         }
 
         public static Sequence Flash(
