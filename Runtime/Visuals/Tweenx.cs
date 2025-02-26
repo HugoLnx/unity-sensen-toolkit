@@ -6,7 +6,7 @@ using DG.Tweening.Plugins.Options;
 
 namespace SensenToolkit
 {
-    public static class SimpleTweening
+    public static class Tweenx
     {
         public static Tween FromTo(
             System.Action<float> action,
