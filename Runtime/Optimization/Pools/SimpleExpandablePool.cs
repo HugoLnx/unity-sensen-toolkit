@@ -16,6 +16,9 @@ namespace SensenToolkit
 
         public int MaxCreations => _maxCreations;
 
+        public event Action<T> OnBeforeGetInstance = delegate { };
+        public event Action<T> OnAfterReleaseInstance = delegate { };
+
         public delegate void OnInstanceCreatedAction(T instance);
         private event OnInstanceCreatedAction OnInstanceCreated = delegate { };
 
@@ -47,7 +50,9 @@ namespace SensenToolkit
             {
                 Grow();
             }
-            return _resources.Dequeue();
+            T instance = _resources.Dequeue();
+            OnBeforeGetInstance.Invoke(instance);
+            return instance;
         }
 
         public void Release(T obj)
@@ -57,6 +62,7 @@ namespace SensenToolkit
                 return;
             }
             _resources.Enqueue(obj);
+            OnAfterReleaseInstance.Invoke(obj);
         }
 
         public void ExecuteOncePerInstance(OnInstanceCreatedAction action)
@@ -75,7 +81,7 @@ namespace SensenToolkit
                 throw new InvalidOperationException("Pool has reached max it should create");
             }
             T creation = _factory(this);
-            OnInstanceCreated(creation);
+            OnInstanceCreated.Invoke(creation);
             Creations.Add(creation);
             _resources.Enqueue(creation);
         }
