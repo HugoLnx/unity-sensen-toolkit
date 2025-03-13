@@ -11,6 +11,7 @@ namespace SensenToolkit
         public Vector2[] Vertices { get; private set; }
         public SimpleSegment2D[] Segments { get; }
         public HashSet<Vector2> VerticesSet { get; }
+        public SimpleBounds Bounds { get; }
 
         public Polygon2D(Vector2[] vertices)
         {
@@ -18,11 +19,13 @@ namespace SensenToolkit
             Vertices = vertices;
             Segments = new SimpleSegment2D[vertices.Length];
             VerticesSet = new HashSet<Vector2>(vertices);
+            Bounds = new SimpleBounds(min: vertices[0], max: vertices[0]);
             for (int i = 0; i < vertices.Length; i++)
             {
                 Vector2 begin = vertices[i];
                 Vector2 end = vertices[(i + 1) % vertices.Length];
                 Segments[i] = new SimpleSegment2D(begin, end);
+                Bounds = Bounds.Encapsulate(begin);
             }
         }
 
