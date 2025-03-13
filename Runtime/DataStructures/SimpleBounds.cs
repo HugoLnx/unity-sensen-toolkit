@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -25,6 +26,17 @@ namespace SensenToolkit
             Min = Vector2.Min(Min, bounds.Min);
             Max = Vector2.Max(Max, bounds.Max);
             return this;
+        }
+
+        public void Encapsulate(Bounds bounds)
+        {
+            Min = Vector2.Min(Min, bounds.min);
+            Max = Vector2.Max(Max, bounds.max);
+        }
+
+        public Bounds ToBounds()
+        {
+            return new Bounds(Center, Size);
         }
 
         public readonly Vector2 Center => (Min + Max) * 0.5f;
