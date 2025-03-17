@@ -73,5 +73,15 @@ namespace SensenToolkit
             float distanceToLine = Mathf.Abs(Vector2.Dot(new Vector2(-Direction.y, Direction.x), toPoint));
             return Floatx.IsBetween(projection, -LengthBackward, LengthForward) && Floatx.IsLessOrEqual(distanceToLine, 0.01f);
         }
+
+        public string BuildSpec()
+        {
+            return $"new {nameof(SimpleSegment2D)}(\n"
+            + $"\tposition: new Vector2({Position.x}f, {Position.y}f),\n"
+            + $"\tdirection: new Vector2({Direction.x}f, {Direction.y}f),\n"
+            + $"\tlengthForward: {LengthForward}f,\n"
+            + $"\tlengthBackward: {LengthBackward}f\n"
+            + ")";
+        }
     }
 }

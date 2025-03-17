@@ -68,5 +68,11 @@ namespace SensenToolkit
             }
             return new Polygon2D(vertices);
         }
+
+        public string BuildSpec()
+        {
+            string buildVertices = string.Join(", \n", Vertices.Select((v) => $"new Vector2({v.x}f, {v.y}f)"));
+            return $"new {nameof(Polygon2D)}(vertices: new Vector2[] {{\n {buildVertices} }}\n)";
+        }
     }
 }

@@ -28,6 +28,23 @@ namespace SensenToolkit
 
         public (List<Polygon2D>, List<Polygon2D>) Execute()
         {
+            try
+            {
+                return ActualExecute();
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"[Polygon2DCutter] Error: {e.Message}");
+                Debug.Log($"[Polygon2DCutter] How to rebuild...");
+                Debug.Log($"Polygon: {_polygon.BuildSpec()}");
+                Debug.Log($"CutSegment: {_cutSegment.BuildSpec()}");
+                Debug.LogError($"[Polygon2DCutter] --- Error End ---");
+                throw e;
+            }
+        }
+
+        private (List<Polygon2D>, List<Polygon2D>) ActualExecute()
+        {
             if (_graph.AllNodes.Length <= 2) throw new InvalidOperationException("Polygon must have at least 3 vertices");
             if (_graph.CutNodes.Length == 0)
             {

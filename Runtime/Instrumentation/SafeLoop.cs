@@ -22,8 +22,8 @@ namespace SensenToolkit
             _interactions++;
             if (throwError && HasReachedMax)
             {
-                UnityEngine.Debug.LogError("SafeLoop: Max iterations reached. Exiting loop.");
-                UnityEngine.Debug.Break();
+                // UnityEngine.Debug.LogError("SafeLoop: Max iterations reached. Exiting loop.");
+                // UnityEngine.Debug.Break();
                 throw new System.Exception("SafeLoop: Max iterations reached. Exiting loop.");
             }
         }
