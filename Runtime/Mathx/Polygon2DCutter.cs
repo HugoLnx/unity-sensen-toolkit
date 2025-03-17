@@ -13,6 +13,7 @@ namespace SensenToolkit
         private CutGraph _graph;
         private List<CutPolygonBuilder> _allPolygons = new();
         private Dictionary<(CutGraphNode, bool), int> _cutNodesMissingUsageCount = new();
+        private HashSet<(CutGraphNode, bool)> _nodesCantBeUsedAgain = new();
 
         public Polygon2DCutter(Polygon2D polygon, Vector2 origin, Vector2 direction)
         {
@@ -95,7 +96,8 @@ namespace SensenToolkit
 
         private void MountPolygon(CutGraphNode firstCutNode, bool isSideA)
         {
-            if (_cutNodesMissingUsageCount.TryGetValue((firstCutNode, isSideA), out int missingUsageCount) && missingUsageCount == 0) return;
+            // Debug.Log($"MountPolygon: {firstCutNode.Position} isSideA:{isSideA}");
+            if (_nodesCantBeUsedAgain.Contains((firstCutNode, isSideA))) return;
 
             bool isSideB = !isSideA;
             if (isSideA && !firstCutNode.IsSideA) return;
@@ -105,16 +107,17 @@ namespace SensenToolkit
             polygon.IsSideA = isSideA;
             _allPolygons.Add(polygon);
 
-            CutGraphNode lastNode = null;
+            CutGraphNode lastVisitedNode = null;
             CutGraphNode node = firstCutNode;
             SafeLoop safeLoop = new(maxIterations: 1000);
             safeLoop.Reset();
             do
             {
+                // Debug.Log($"Node: {node.Position} isSideA:{node.IsSideA} isSideB:{node.IsSideB} isCut:{node.IsCutIntersection}");
                 polygon.AddAtEnd(node);
                 if (node.IsCutIntersection)
                 {
-                    if (!_cutNodesMissingUsageCount.TryGetValue((node, isSideA), out missingUsageCount))
+                    if (!_cutNodesMissingUsageCount.TryGetValue((node, isSideA), out int missingUsageCount))
                     {
                         int maxUsageCount = 1;
                         if (node.IsAVertexThatWasCut && node.IsSideA && node.IsSideB)
@@ -125,34 +128,66 @@ namespace SensenToolkit
                         missingUsageCount = maxUsageCount;
                     }
                     missingUsageCount = Mathf.Max(0, missingUsageCount - 1);
+                    if (missingUsageCount == 0) _nodesCantBeUsedAgain.Add((node, isSideA));
                     _cutNodesMissingUsageCount[(node, isSideA)] = missingUsageCount;
+                }
+                else
+                {
+                    _nodesCantBeUsedAgain.Add((node, isSideA));
                 }
 
                 CutGraphNode nodeBkp = node;
-                node = GetNextPolygonNode(node, lastNode, isSideA);
-                lastNode = nodeBkp;
+                node = GetNextPolygonNode(node, firstCutNode, lastVisitedNode, isSideA);
+                lastVisitedNode = nodeBkp;
                 safeLoop.Count();
             } while (node != firstCutNode);
         }
 
-        private CutGraphNode GetNextPolygonNode(CutGraphNode node, CutGraphNode lastNode, bool isSideA)
+        private CutGraphNode GetNextPolygonNode(
+            CutGraphNode node,
+            CutGraphNode firstVisitedNode,
+            CutGraphNode lastVisitedNode,
+            bool isSideA
+        )
         {
             CutGraphNode nextNode = node.NextNode;
             CutGraphNode prevNode = node.PreviousNode;
             CutGraphNode crossCutPrevNode = node.PreviousCrossingCutNode;
             CutGraphNode crossCutNextNode = node.NextCrossingCutNode;
-            bool isCutNode = node.IsCutIntersection && lastNode != null;
+
+            bool isCutNode = node.IsCutIntersection && lastVisitedNode != null;
+
             if (isCutNode)
             {
-                if (crossCutPrevNode != null && crossCutPrevNode != lastNode && CheckSide(crossCutPrevNode, isSideA)) return crossCutPrevNode;
-                if (crossCutNextNode != null && crossCutNextNode != lastNode && CheckSide(crossCutNextNode, isSideA)) return crossCutNextNode;
+                if (CheckIsValid(crossCutPrevNode, firstVisitedNode, lastVisitedNode, isSideA))
+                {
+                    return crossCutPrevNode;
+                }
+
+                if (CheckIsValid(crossCutNextNode, firstVisitedNode, lastVisitedNode, isSideA))
+                {
+                    return crossCutNextNode;
+                }
             }
-            if (nextNode != lastNode && !IsCutSegment(node, nextNode) && CheckSide(nextNode, isSideA)) return nextNode;
-            if (prevNode != lastNode && !IsCutSegment(node, prevNode) && CheckSide(prevNode, isSideA)) return prevNode;
+
+            if (CheckIsValid(nextNode, firstVisitedNode, lastVisitedNode, isSideA)
+                && !IsCutSegment(node, nextNode)
+            ) return nextNode;
+
+            if (CheckIsValid(prevNode, firstVisitedNode, lastVisitedNode, isSideA)
+                && !IsCutSegment(node, prevNode)
+            ) return prevNode;
+
             if (!isCutNode)
             {
-                if (crossCutPrevNode != null && crossCutPrevNode != lastNode && CheckSide(crossCutPrevNode, isSideA)) return crossCutPrevNode;
-                if (crossCutNextNode != null && crossCutNextNode != lastNode && CheckSide(crossCutNextNode, isSideA)) return crossCutNextNode;
+                if (CheckIsValid(crossCutPrevNode, firstVisitedNode, lastVisitedNode, isSideA))
+                {
+                    return crossCutPrevNode;
+                }
+                if (CheckIsValid(crossCutNextNode, firstVisitedNode, lastVisitedNode, isSideA))
+                {
+                    return crossCutNextNode;
+                }
             }
             throw new InvalidOperationException($"No next polygon node found for {node.Position} in side {(isSideA ? "A" : "B")}");
         }
@@ -161,6 +196,25 @@ namespace SensenToolkit
         {
             return (a.NextNode == b || a.PreviousNode == b) && (a.IsCutIntersection && b.IsCutIntersection);
         }
+
+        private bool CheckIsValid(
+            CutGraphNode node,
+            CutGraphNode firstVisitedNode,
+            CutGraphNode lastVisitedNode,
+            bool isSideA
+        )
+        {
+            if (node == null
+                || node == lastVisitedNode // Can't ever go back
+            ) return false;
+
+            // if is closing the polygon
+            if (node == firstVisitedNode) return true;
+
+            return CheckSide(node, isSideA)
+                && !_nodesCantBeUsedAgain.Contains((node, isSideA));
+        }
+
 
         private bool CheckSide(CutGraphNode node, bool isSideA)
         {

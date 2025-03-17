@@ -69,6 +69,16 @@ namespace SensenToolkit
             return new Polygon2D(vertices);
         }
 
+        public Polygon2D InverseVertexOrder()
+        {
+            Vector2[] inverseVertices = new Vector2[Vertices.Length];
+            for (int i = 0; i < Vertices.Length; i++)
+            {
+                inverseVertices[i] = Vertices[Vertices.Length - 1 - i];
+            }
+            return new Polygon2D(inverseVertices);
+        }
+
         public string BuildSpec()
         {
             string buildVertices = string.Join(", \n", Vertices.Select((v) => $"new Vector2({v.x}f, {v.y}f)"));

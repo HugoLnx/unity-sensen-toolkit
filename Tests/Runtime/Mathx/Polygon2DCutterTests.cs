@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using SensenToolkit;
 using SensenToolkit.Internal;
@@ -11,7 +12,7 @@ public class Polygon2DCutterTests
     private static readonly Vector2EqualityComparer s_v2Comparer = new(10e-2f);
 
     [Test]
-    public void CutASquareThrough_When_FromTopToBottom_SideAIsLeft()
+    public void CutASquareThrough()
     {
         Polygon2D square = new(new Vector2[]
         {
@@ -42,7 +43,7 @@ public class Polygon2DCutterTests
             new(1f, -1f),
             new(-0.5f, -1f),
         });
-        AssertCutResult(
+        AssertMultipleCutWaysResults(
             square,
             cutSegment,
             expectedSideA: new() { leftSide },
@@ -51,47 +52,7 @@ public class Polygon2DCutterTests
     }
 
     [Test]
-    public void CutASquareThrough_When_FromBottomToTop_SideAIsRight()
-    {
-        Polygon2D square = new(new Vector2[]
-        {
-            new(-1f, 1f),
-            new(1f, 1f),
-            new(1f, -1f),
-            new(-1f, -1f)
-        });
-        SimpleSegment2D cutSegment = new(
-            position: new(-0.5f, 0f),
-            direction: Vector2.up,
-            lengthForward: Mathf.Infinity,
-            lengthBackward: Mathf.Infinity
-        );
-
-        Polygon2D leftSide = new(new Vector2[]
-        {
-            new(-1f, 1f),
-            new(-0.5f, 1f),
-            new(-0.5f, -1f),
-            new(-1f, -1f),
-        });
-
-        Polygon2D rightSide = new(new Vector2[]
-        {
-            new(-0.5f, 1f),
-            new(1f, 1f),
-            new(1f, -1f),
-            new(-0.5f, -1f),
-        });
-        AssertCutResult(
-            square,
-            cutSegment,
-            expectedSideA: new() { rightSide },
-            expectedSideB: new() { leftSide }
-        );
-    }
-
-    [Test]
-    public void CutASquaresRightEdge_When_FromTopToBottom_SideAIsTheWholeSquare()
+    public void OneSideIsTheWholeSquare_When_CutASquaresRightEdge()
     {
         Polygon2D square = new(new Vector2[]
         {
@@ -107,11 +68,36 @@ public class Polygon2DCutterTests
             lengthBackward: Mathf.Infinity
         );
 
-        AssertCutResult(
+        AssertMultipleCutWaysResults(
             square,
             cutSegment,
             expectedSideA: new() { square },
             expectedSideB: new()
+        );
+    }
+
+    [Test]
+    public void OneSideIsTheWholeSquare_When_CutASquaresLeftEdge()
+    {
+        Polygon2D square = new(new Vector2[]
+        {
+            new(-1f, 1f),
+            new(1f, 1f),
+            new(1f, -1f),
+            new(-1f, -1f)
+        });
+        SimpleSegment2D cutSegment = new(
+            position: new(-1f, 0f),
+            direction: Vector2.down,
+            lengthForward: Mathf.Infinity,
+            lengthBackward: Mathf.Infinity
+        );
+
+        AssertMultipleCutWaysResults(
+            square,
+            cutSegment,
+            expectedSideA: new(),
+            expectedSideB: new() { square }
         );
     }
 
@@ -161,11 +147,11 @@ public class Polygon2DCutterTests
             new(-0.29f, -0.17f),
         }));
 
-        AssertCutResult(polygon, cutSegment, sideA, sideB);
+        AssertMultipleCutWaysResults(polygon, cutSegment, sideA, sideB);
     }
 
     [Test]
-    public void CutPolygonWithHole_FromTopToBottom()
+    public void CutPolygonWithHoleAtLeft()
     {
         //      |
         //   +--x--+
@@ -214,7 +200,7 @@ public class Polygon2DCutterTests
             .Build()
         );
 
-        AssertCutResult(
+        AssertMultipleCutWaysResults(
             polygon,
             cutSegment,
             expectedSideA: sideA,
@@ -223,33 +209,66 @@ public class Polygon2DCutterTests
     }
 
     [Test]
-    public void CutASquaresRightEdge_When_FromBottomToTop_SideBIsTheWholeSquare()
+    public void CutPolygonWithHoleAtRight()
     {
-        Polygon2D square = new(new Vector2[]
-        {
-            new(-1f, 1f),
-            new(1f, 1f),
-            new(1f, -1f),
-            new(-1f, -1f)
-        });
+        //     / \
+        //      |
+        //   +--x--+
+        //   |  | /
+        //   |  x
+        //   |  | \
+        //   +--x--+
+        //      |
+        Polygon2D polygon = new Polygon2DEasyBuilder()
+            .WorldPoint(Vector2.zero)
+            .NextPoint(Vector2.right * 2f)
+            .NextPoint(Vector2.down + Vector2.left)
+            .NextPoint(Vector2.down + Vector2.right)
+            .WorldPoint(new Vector2(0f, -2f))
+            .Build();
+
         SimpleSegment2D cutSegment = new(
             position: new(1f, 0f),
-            direction: Vector2.up,
+            direction: Vector3.up,
             lengthForward: Mathf.Infinity,
             lengthBackward: Mathf.Infinity
         );
 
-        AssertCutResult(
-            square,
+        List<Polygon2D> sideA = new();
+        sideA.Add(new Polygon2DEasyBuilder()
+            .WorldPoint(new Vector2(1f, -1f))
+            .NextPoint(Vector2.down + Vector2.right)
+            .NextPoint(Vector2.left)
+            .Build()
+        );
+        sideA.Add(new Polygon2DEasyBuilder()
+            .WorldPoint(new Vector2(1f, 0f))
+            .NextPoint(Vector2.right)
+            .NextPoint(Vector2.down + Vector2.left)
+            .Build()
+        );
+
+        List<Polygon2D> sideB = new();
+        sideB.Add(new Polygon2DEasyBuilder()
+            .WorldPoint(new Vector2(0f, 0f))
+            .NextPoint(Vector2.right)
+            .NextPoint(Vector2.down)
+            .NextPoint(Vector2.down)
+            .WorldPoint(new Vector2(0f, -2f))
+            .Build()
+        );
+
+        AssertMultipleCutWaysResults(
+            polygon,
             cutSegment,
-            expectedSideA: new(),
-            expectedSideB: new() { square }
+            expectedSideA: sideA,
+            expectedSideB: sideB
         );
     }
 
 
     [Test]
-    public void MissesThePolygonAtTheRight_When_FromTopToBottom_SideAIsTheWholePolygon()
+    public void OneSideIsTheWholePolygon_When_MissesThePolygonAtRight()
     {
         Polygon2D square = new(new Vector2[]
         {
@@ -265,7 +284,7 @@ public class Polygon2DCutterTests
             lengthBackward: Mathf.Infinity
         );
 
-        AssertCutResult(
+        AssertMultipleCutWaysResults(
             square,
             cutSegment,
             expectedSideA: new() { square },
@@ -275,7 +294,7 @@ public class Polygon2DCutterTests
 
 
     [Test]
-    public void MissesThePolygonAtTheRight_When_FromBottomToTop_SideBIsTheWholePolygon()
+    public void OneSideIsTheWholePolygon_When_MissesThePolygonAtLeft()
     {
         Polygon2D square = new(new Vector2[]
         {
@@ -291,7 +310,7 @@ public class Polygon2DCutterTests
             lengthBackward: Mathf.Infinity
         );
 
-        AssertCutResult(
+        AssertMultipleCutWaysResults(
             square,
             cutSegment,
             expectedSideA: new(),
@@ -300,7 +319,7 @@ public class Polygon2DCutterTests
     }
 
     [Test]
-    public void CutAPolygonWithTwoHills_FromTopToBottom()
+    public void CutAPolygonWithTwoHills()
     {
         //      |
         //      x--+
@@ -367,11 +386,11 @@ public class Polygon2DCutterTests
             lengthBackward: Mathf.Infinity
         );
 
-        AssertCutResult(polygon, cutSegment, sideA, sideB);
+        AssertMultipleCutWaysResults(polygon, cutSegment, sideA, sideB);
     }
 
     [Test]
-    public void CutAPolygonWithTwoHoles_FromTopToBottom()
+    public void CutAPolygonWithTwoHoles()
     {
         //      |
         //         +--+
@@ -441,7 +460,7 @@ public class Polygon2DCutterTests
             .Build()
         );
 
-        AssertCutResult(polygon, cutSegment, sideA, sideB);
+        AssertMultipleCutWaysResults(polygon, cutSegment, sideA, sideB);
     }
 
     [Test]
@@ -509,7 +528,7 @@ public class Polygon2DCutterTests
             .Build()
         );
 
-        AssertCutResult(polygon, cutSegment, sideA, sideB);
+        AssertMultipleCutWaysResults(polygon, cutSegment, sideA, sideB);
     }
 
 
@@ -600,7 +619,7 @@ public class Polygon2DCutterTests
             .Build()
         );
 
-        AssertCutResult(polygon, cutSegment, sideA, sideB);
+        AssertMultipleCutWaysResults(polygon, cutSegment, sideA, sideB);
     }
 
     [Test]
@@ -673,7 +692,7 @@ public class Polygon2DCutterTests
             .Build()
         );
 
-        AssertCutResult(polygon, cutSegment, sideA, sideB);
+        AssertMultipleCutWaysResults(polygon, cutSegment, sideA, sideB);
     }
 
 
@@ -840,6 +859,24 @@ public class Polygon2DCutterTests
         );
 
         AssertCutResult(polygon, cutSegment, sideA, sideB);
+    }
+    private void AssertMultipleCutWaysResults(
+        Polygon2D polygon,
+        SimpleSegment2D cutSegment,
+        List<Polygon2D> expectedSideA,
+        List<Polygon2D> expectedSideB
+    )
+    {
+        Polygon2D invPolygon = polygon.InverseVertexOrder();
+        SimpleSegment2D invCutSegment = cutSegment.InverseDirection();
+        var invExpectedSideA = expectedSideA.Select(p => p).Reverse().ToList();
+        var invExpectedSideB = expectedSideB.Select(p => p).Reverse().ToList();
+
+        AssertCutResult(polygon, cutSegment, expectedSideA, expectedSideB);
+        AssertCutResult(polygon, invCutSegment, invExpectedSideB, invExpectedSideA);
+
+        AssertCutResult(invPolygon, cutSegment, expectedSideA, expectedSideB);
+        AssertCutResult(invPolygon, invCutSegment, invExpectedSideB, invExpectedSideA);
     }
 
     private void AssertCutResult(

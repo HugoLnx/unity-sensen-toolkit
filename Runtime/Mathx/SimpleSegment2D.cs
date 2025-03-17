@@ -83,5 +83,10 @@ namespace SensenToolkit
             + $"\tlengthBackward: {LengthBackward}f\n"
             + ")";
         }
+
+        public SimpleSegment2D InverseDirection()
+        {
+            return new SimpleSegment2D(Position, -Direction, LengthBackward, LengthForward);
+        }
     }
 }
