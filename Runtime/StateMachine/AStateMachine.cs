@@ -130,6 +130,7 @@ namespace SensenToolkit
             Nodes[from].AddTransition(message, Nodes[to]);
         }
 
+#if UNITY_EDITOR
         private IEnumerator DebuggerLoop()
         {
             WaitForSeconds wait = new(0.35f);
@@ -139,5 +140,6 @@ namespace SensenToolkit
                 yield return wait;
             }
         }
+#endif
     }
 }
