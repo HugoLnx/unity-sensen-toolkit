@@ -39,6 +39,11 @@ namespace SensenToolkit
             return FromTo(action, duration, startValue: 0f, endValue: 1f, setImmediately: setImmediately);
         }
 
+        public static Tween FromOneToZero(System.Action<float> action, float duration, bool setImmediately = false)
+        {
+            return FromTo(action, duration, startValue: 1f, endValue: 0f, setImmediately: setImmediately);
+        }
+
         public static Sequence Flash(
             System.Action<float> action,
             float durationIn = 0.1f,
