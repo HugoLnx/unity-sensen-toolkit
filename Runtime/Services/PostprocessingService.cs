@@ -26,6 +26,17 @@ namespace SensenToolkit
             : _bloom;
         private Bloom _bloom;
 
+        public MotionBlur MotionBlur => _motionBlur == null
+            ? EnsureEffect<MotionBlur>()
+            : _motionBlur;
+        private MotionBlur _motionBlur;
+
+
+        public LensDistortion LensDistortion => _lensDistortion == null
+            ? EnsureEffect<LensDistortion>()
+            : _lensDistortion;
+        private LensDistortion _lensDistortion;
+
         private T EnsureEffect<T>() where T : VolumeComponent
         {
             if (Volume.profile.TryGet(out T effect)) return effect;
