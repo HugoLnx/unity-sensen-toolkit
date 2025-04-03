@@ -31,11 +31,15 @@ namespace SensenToolkit
             : _motionBlur;
         private MotionBlur _motionBlur;
 
-
         public LensDistortion LensDistortion => _lensDistortion == null
             ? EnsureEffect<LensDistortion>()
             : _lensDistortion;
         private LensDistortion _lensDistortion;
+
+        public SplitToning SplitToning => _splitToning == null
+            ? EnsureEffect<SplitToning>()
+            : _splitToning;
+        private SplitToning _splitToning;
 
         private T EnsureEffect<T>() where T : VolumeComponent
         {
