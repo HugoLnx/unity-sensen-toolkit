@@ -41,14 +41,15 @@ namespace SensenToolkit
 
         private IEnumerator CopycatLoop()
         {
-            do
+            yield return _waitForEndOfFrame;
+            while (_target != null)
             {
-                yield return _waitForEndOfFrame;
                 if (_copyPosition) transform.position += _target.position - _lastPosition;
                 if (_copyRotation) transform.rotation *= _target.rotation * Quaternion.Inverse(_lastRotation);
                 _lastPosition = _target.position;
                 _lastRotation = _target.rotation;
-            } while (_target != null);
+                yield return _waitForEndOfFrame;
+            }
         }
     }
 }
