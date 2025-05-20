@@ -39,10 +39,38 @@ namespace SensenToolkit
             return new Bounds(Center, Size);
         }
 
+        public Vector2 ClampVector(Vector2 vec)
+        {
+            return new Vector2(
+                x: Mathf.Clamp(vec.x, Min.x, Max.x),
+                y: Mathf.Clamp(vec.y, Min.y, Max.y)
+            );
+        }
+
+        public SimpleBounds Scale(float v)
+        {
+            Vector2 center = Center;
+            Vector2 size = Size * v;
+            return new SimpleBounds(
+                min: center - size * 0.5f,
+                max: center + size * 0.5f
+            );
+        }
+
         public readonly Vector2 Center => (Min + Max) * 0.5f;
         public readonly Vector2 Size => new(
             Mathf.Abs(Max.x - Min.x),
             Mathf.Abs(Max.y - Min.y)
         );
+
+        public static SimpleBounds operator +(SimpleBounds bounds, Vector2 offset)
+        {
+            return new SimpleBounds(bounds.Min + offset, bounds.Max + offset);
+        }
+
+        public static SimpleBounds operator -(SimpleBounds bounds, Vector2 offset)
+        {
+            return new SimpleBounds(bounds.Min - offset, bounds.Max - offset);
+        }
     }
 }
