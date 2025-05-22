@@ -31,6 +31,13 @@ namespace SensenToolkit
         private float _everMinFps = Mathf.Infinity;
         private float _everMaxFps = -Mathf.Infinity;
 
+#if !(SENSEN_DEBUG_BUILD || UNITY_EDITOR)
+        private void Awake()
+        {
+            Destroy(this);
+        }
+#endif
+
         private void OnEnable()
         {
             for (int i = 0; i < _latestSnapshots.Length; i++)
