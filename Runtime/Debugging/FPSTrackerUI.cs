@@ -34,7 +34,7 @@ namespace SensenToolkit
 #if !(SENSEN_DEBUG_BUILD || UNITY_EDITOR)
         private void Awake()
         {
-            Destroy(this);
+            Destroy(this.gameObject);
         }
 #endif
 
