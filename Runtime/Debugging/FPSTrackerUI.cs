@@ -16,8 +16,14 @@ namespace SensenToolkit
         // The latest min/max FPS includes latest (DELAY * LENGTH) seconds.
         private const int LATEST_SNAPSHOT_LENGTH = 20;
         private const float WEIGHT_REDUCTION = 0.99f;
+
+        [Tooltip("Destroy the whole canvas if not in debug build")]
+        [SerializeField]
+        private bool _hasExclusiveCanvas = true;
         [SerializeField, AutoProperty(AutoPropertyMode.Children)]
         private TMP_Text _text;
+        [SerializeField, AutoProperty(AutoPropertyMode.Parent)]
+        private Canvas _ancestorCanvas;
         private float _time = 0f;
         private float _nowFps = 0f;
         private float _smoothedFps = 0f;
@@ -34,7 +40,7 @@ namespace SensenToolkit
 #if !(SENSEN_DEBUG_BUILD || UNITY_EDITOR)
         private void Awake()
         {
-            Destroy(this.gameObject);
+            Destroy(_hasExclusiveCanvas ? _ancestorCanvas.gameObject : this.gameObject);
         }
 #endif
 
