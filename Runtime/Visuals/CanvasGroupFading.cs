@@ -19,15 +19,21 @@ namespace SensenToolkit
         [SerializeField, AutoProperty(AutoPropertyMode.Parent)]
         private Canvas _ancestorCanvas;
         private Tween _tween;
+        public bool IsVisible { get; private set; }
 
         private void Awake()
         {
             if (_hideOnAwake) _canvasGroup.alpha = 0f;
         }
 
+        private void OnDisable()
+        {
+            SetVisibilityTo(false);
+        }
+
         public void Show(float duration = FADE_IN_DEFAULT_DURATION)
         {
-            SetAncestorCanvasEnabled(true);
+            SetVisibilityTo(true);
             Tweenx.KillAndNullify(ref _tween);
             _tween = Tweenx.FromTo(
                 action: (v) => _canvasGroup.alpha = v,
@@ -56,7 +62,7 @@ namespace SensenToolkit
         {
             Tweenx.KillAndNullify(ref _tween);
             _canvasGroup.alpha = 1f;
-            SetAncestorCanvasEnabled(true);
+            SetVisibilityTo(true);
         }
 
         [Button]
@@ -64,11 +70,12 @@ namespace SensenToolkit
         {
             Tweenx.KillAndNullify(ref _tween);
             _canvasGroup.alpha = 0f;
-            SetAncestorCanvasEnabled(false);
+            SetVisibilityTo(false);
         }
 
-        private void SetAncestorCanvasEnabled(bool turnOn)
+        private void SetVisibilityTo(bool turnOn)
         {
+            IsVisible = turnOn;
             if (!_controlAncestorCanvas || _ancestorCanvas == null) return;
             _ancestorCanvas.enabled = turnOn;
         }
