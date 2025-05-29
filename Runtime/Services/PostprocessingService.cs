@@ -1,4 +1,6 @@
 #if DOTWEEN
+using MyBox;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -6,10 +8,10 @@ namespace SensenToolkit
 {
     public class PostprocessingService : ATransientSingleton<PostprocessingService>
     {
+        [SerializeField, AutoProperty] private Volume _volume;
         public Volume Volume => _volume = _volume == null
             ? GetComponent<Volume>()
             : _volume;
-        private Volume _volume;
 
         public ColorAdjustments ColorAdjustments => _colorAdjustments == null
             ? EnsureEffect<ColorAdjustments>()
