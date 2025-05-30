@@ -45,6 +45,7 @@ namespace SensenToolkit
 
         private T EnsureEffect<T>() where T : VolumeComponent
         {
+            if (Volume == null) return null;
             if (Volume.profile.TryGet(out T effect)) return effect;
             effect = Volume.profile.Add<T>(true);
             effect.active = false;
