@@ -11,10 +11,17 @@ namespace SensenToolkit
         private const float MAX_DURATION = 0.6f;
         private const float MIN_DISTANCE = 0.01f;
         private const float MAX_DISTANCE = 0.04f;
+        [SerializeField]
+        private TransparencySortMode _transparencySortMode = TransparencySortMode.Default;
         public Camera MainCamera => _mainCamera = _mainCamera != null ? _mainCamera : Camera.main;
         private Camera _mainCamera;
         private Vector3? _originalPosition;
         private Tween _tween;
+
+        private void Start()
+        {
+            MainCamera.transparencySortMode = _transparencySortMode;
+        }
 
         [Button]
         public void Shake(float violence = 0f, float? durationOverride = null, float? distanceOverride = null)
