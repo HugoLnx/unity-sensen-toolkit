@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using MyBox;
 using SensenToolkit;
@@ -18,12 +17,12 @@ namespace Bumashuta
         public bool IsPaused => _isPaused && IsAllowedToPause;
         private bool IsAllowedToPause => _blockers.Count == 0;
 
-        public event Action<bool> OnChanged;
+        public event System.Action<bool> OnChanged;
 
         protected override void AwakeAny()
         {
             base.AwakeAny();
-            Resume();
+            SwitchPausedTo(false);
         }
 
         private void Update()
@@ -35,22 +34,10 @@ namespace Bumashuta
             bool pressedPause = keyboard.enterKey.wasPressedThisFrame ||
                                 keyboard.pKey.wasPressedThisFrame ||
                                 keyboard.escapeKey.wasPressedThisFrame;
-            if (!pressedPause) return;
-            if (_isPaused) Resume();
-            else Pause();
+            if (pressedPause) SwitchPausedTo(!_isPaused);
         }
 
-        public void Pause()
-        {
-            SetIsPaused(true);
-        }
-
-        public void Resume()
-        {
-            SetIsPaused(false);
-        }
-
-        public void SetIsPaused(bool isPaused)
+        public void SwitchPausedTo(bool isPaused)
         {
             bool wasPaused = IsPaused;
             _isPaused = isPaused;
