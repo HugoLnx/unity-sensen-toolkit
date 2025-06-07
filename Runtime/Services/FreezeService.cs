@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using MyBox;
-using SensenToolkit;
 using UnityEngine;
 
-namespace Bumashuta
+namespace SensenToolkit
 {
     public class FreezeService : ATransientSingleton<FreezeService>
     {

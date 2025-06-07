@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using MyBox;
-using SensenToolkit;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Bumashuta
+namespace SensenToolkit
 {
     public class PauseService : ATransientSingleton<PauseService>
     {

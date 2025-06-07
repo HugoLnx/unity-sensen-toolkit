@@ -1,7 +1,7 @@
 using SensenToolkit;
 using UnityEngine;
 
-namespace Bumashuta
+namespace SensenToolkit
 {
     public class ScreenService : APermanentSingleton<ScreenService>
     {

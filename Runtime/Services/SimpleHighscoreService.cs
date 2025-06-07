@@ -3,7 +3,7 @@ using MyBox;
 using SensenToolkit;
 using UnityEngine;
 
-namespace Bumashuta
+namespace SensenToolkit
 {
     public class SimpleHighscoreService : APermanentSingleton<SimpleHighscoreService>
     {

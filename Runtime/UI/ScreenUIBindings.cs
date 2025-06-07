@@ -1,10 +1,8 @@
 #if DOTWEEN
-using DG.Tweening;
 using MyBox;
-using SensenToolkit;
 using UnityEngine;
 
-namespace Bumashuta
+namespace SensenToolkit
 {
     [RequireComponent(typeof(PanelFadable))]
     public class ScreenUIBindings : MonoBehaviour
