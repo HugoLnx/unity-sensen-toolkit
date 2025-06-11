@@ -43,11 +43,19 @@ namespace SensenToolkit
             : _splitToning;
         private SplitToning _splitToning;
 
+        public LiftGammaGain LiftGammaGain => _liftGammaGain == null
+            ? EnsureEffect<LiftGammaGain>()
+            : _liftGammaGain;
+        private LiftGammaGain _liftGammaGain;
+
         private T EnsureEffect<T>() where T : VolumeComponent
+            => EnsureEffect<T>(_volume);
+
+        public static T EnsureEffect<T>(Volume volume) where T : VolumeComponent
         {
-            if (Volume == null) return null;
-            if (Volume.profile.TryGet(out T effect)) return effect;
-            effect = Volume.profile.Add<T>(true);
+            if (volume == null) return null;
+            if (volume.profile.TryGet(out T effect)) return effect;
+            effect = volume.profile.Add<T>(true);
             effect.active = false;
             return effect;
         }
