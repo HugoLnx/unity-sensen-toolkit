@@ -34,18 +34,28 @@ namespace SensenToolkit
 
         protected override string FromUIValue(int uiValue)
         {
-            string itemName = _dropdown.items[uiValue].itemName;
-            return NameToKey(itemName);
+            Dropdown.Item item = _dropdown.items[uiValue];
+            return ItemToKey(item);
         }
         protected override int ToUIValue(string value)
         {
-            int index = _dropdown.items.FindIndex(item => string.Equals(NameToKey(item.itemName), value, StringComparison.OrdinalIgnoreCase));
+            int index = _dropdown.items.FindIndex(
+                item => string.Equals(ItemToKey(item), value, StringComparison.OrdinalIgnoreCase));
             return index >= 0 ? index : 0; // Default to first item if not found
         }
 
-        private string NameToKey(string itemName)
+        private string ItemToKey(Dropdown.Item item)
         {
-            return Regex.Replace(itemName.ToLowerInvariant(), @"[^a-z0-9]+", "", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            if (string.IsNullOrEmpty(item.localizationKey))
+            {
+                return Regex.Replace(
+                    item.itemName.ToLowerInvariant(),
+                    @"[^a-z0-9]+", "",
+                    RegexOptions.Compiled | RegexOptions.CultureInvariant
+                );
+            }
+
+            return item.localizationKey;
         }
     }
 }

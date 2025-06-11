@@ -22,6 +22,7 @@ namespace SensenToolkit
         protected override void SetUiValue(bool value)
         {
             _switch.isOn = value;
+            _switch.UpdateUI();
         }
 
         protected override bool GetUiValue()

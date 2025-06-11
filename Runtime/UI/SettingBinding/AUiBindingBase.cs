@@ -44,18 +44,23 @@ namespace SensenToolkit
             Value.AddSyncListener(OnValueChanged);
         }
 
-        private void OnValueChanged(TrawValue newValue)
+        private void OnValueChanged(TvalueSO _)
         {
             if (_ignoreChanges) return;
             _ignoreChanges = true;
             try
             {
-                SetUiValue(ToUIValue(newValue));
+                PushCurrentValueToUi();
             }
             finally
             {
                 _ignoreChanges = false;
             }
+        }
+
+        public void PushCurrentValueToUi()
+        {
+            SetUiValue(ToUIValue(Value.Value));
         }
 
         protected void OnUiValueChanged(TuiValue newUiValue)
