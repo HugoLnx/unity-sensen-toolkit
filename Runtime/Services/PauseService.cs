@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using MyBox;
 using UnityEngine;
@@ -30,10 +31,17 @@ namespace SensenToolkit
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
 
-            bool pressedPause = keyboard.enterKey.wasPressedThisFrame ||
-                                keyboard.pKey.wasPressedThisFrame ||
-                                keyboard.escapeKey.wasPressedThisFrame;
-            if (pressedPause) SwitchPausedTo(!_isPaused);
+            if (_isPaused)
+            {
+                bool pressedUnpause = keyboard?.pKey?.wasPressedThisFrame == true;
+                if (pressedUnpause) SwitchPausedTo(false);
+            }
+            else
+            {
+                bool pressedPause = keyboard?.pKey?.wasPressedThisFrame == true ||
+                                    keyboard?.escapeKey?.wasPressedThisFrame == true;
+                if (pressedPause) SwitchPausedTo(true);
+            }
         }
 
         public void SwitchPausedTo(bool isPaused)

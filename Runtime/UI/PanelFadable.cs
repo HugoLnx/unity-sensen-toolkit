@@ -22,6 +22,7 @@ namespace SensenToolkit
         private const float FAST_SHOW_DURATION = 0.25f;
         private const float FAST_HIDE_DURATION = 0.15f;
 
+        [SerializeField] private bool _autoPushToStack = false;
         [SerializeField] private bool _hideOnAwake = true;
         [SerializeField] private PanelFadableSpeed _speedType = PanelFadableSpeed.Normal;
         [SerializeField, ConditionalField(nameof(_speedType), compareValues: PanelFadableSpeed.Custom)]
@@ -31,8 +32,9 @@ namespace SensenToolkit
 
         [Tooltip("CanvasGroup will not be interactable when this is hidden.")]
         [SerializeField] private bool _controlGroupInteractivity = true;
-        [SerializeField, AutoProperty]
-        private CanvasGroup _canvasGroup;
+        [SerializeField, AutoProperty] private CanvasGroup _canvasGroup;
+        [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
+        private PanelsService _panelsService;
 
         private CanvasGroup _dominantCanvasGroup;
         public CanvasGroup DominantCanvasGroup => _dominantCanvasGroup == null
@@ -137,6 +139,10 @@ namespace SensenToolkit
         {
             SwitchInteractivityTo(true);
             _canvasGroup.alpha = 1f;
+            if (_autoPushToStack && _panelsService != null)
+            {
+                _panelsService.PushTop(this);
+            }
             OnShown.Invoke(this);
         }
 
