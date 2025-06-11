@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
-using EasyButtons;
 using MyBox;
-using PlasticPipe.PlasticProtocol.Messages;
 using UnityEngine;
 
 namespace SensenToolkit
 {
-    public abstract class AValueSO<Tvalue, Tso> : ScriptableObject
-    where Tso : AValueSO<Tvalue, Tso>
+    public abstract class AValueSO<Tvalue, Tso> : AValueSOBase
+        where Tso : AValueSO<Tvalue, Tso>
     {
         [SerializeField, MustBeAssigned] private string _name = null;
         [Tooltip("Use it if you don't want it to be stored across the sessions. (eg. for settings)")]
@@ -26,11 +24,13 @@ namespace SensenToolkit
         private Tvalue _prevValue;
 
         public Tvalue Value { get => GetValue(); set => SetValue(value); }
-        public string Name => _name;
+        public Tvalue DefaultValue => _defaultValue;
+        public override object ValueAsObject => Value;
+        public override string Name => _name;
 
         public delegate void ExtraValueChangedHandler(Tso source, Tvalue newValue, Tvalue oldValue);
         public event ExtraValueChangedHandler OnValueChangedExtra = delegate { };
-        public event Action<Tvalue> OnValueChanged = delegate { };
+        public event Action<Tso> OnValueChanged = delegate { };
 
         protected void OnEnable()
         {
@@ -54,13 +54,13 @@ namespace SensenToolkit
             TryChange();
         }
 
-        public void AddSyncListener(Action<Tvalue> listener)
+        public void AddSyncListener(Action<Tso> listener)
         {
-            listener(Value);
+            listener(this as Tso);
             OnValueChanged += listener;
         }
 
-        public void RemoveSyncListener(Action<Tvalue> listener)
+        public void RemoveSyncListener(Action<Tso> listener)
         {
             OnValueChanged -= listener;
         }
@@ -68,8 +68,12 @@ namespace SensenToolkit
         private void TryResetToDefault()
         {
             if (!_resetToDefaultOnEnable) return;
+            ResetToDefault();
+        }
+
+        public override void ResetToDefault()
+        {
             SetValue(_defaultValue);
-            TryChange();
         }
 
         private Tvalue GetValue()
@@ -101,7 +105,7 @@ namespace SensenToolkit
         {
             Tvalue val = Value;
             OnValueChangedExtra.Invoke(this as Tso, val, oldValue);
-            OnValueChanged.Invoke(val);
+            OnValueChanged.Invoke(this as Tso);
         }
 
         private void TryInitialize()
