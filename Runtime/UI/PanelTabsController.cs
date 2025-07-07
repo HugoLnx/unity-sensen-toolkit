@@ -1,21 +1,14 @@
 #if DOTWEEN
-using System;
-using System.Collections.Generic;
 using MyBox;
 using UnityEngine;
 
 namespace SensenToolkit
 {
-    [System.Serializable]
-    public struct PanelTabConfig
-    {
-        public RadioButton TabButton;
-        public PanelFadable Panel;
-    }
-
     public class PanelTabsController : MonoBehaviour
     {
-        [SerializeField] private PanelTabConfig[] _tabs;
+        [SerializeField, AutoProperty(AutoPropertyMode.Children)]
+        private PanelTabLink[] _links;
+
         [SerializeField, AutoProperty(AutoPropertyMode.Children)]
         private RadioButtonGroup _tabGroup;
 
@@ -32,9 +25,9 @@ namespace SensenToolkit
         private void OnTabStateChanged()
         {
             RadioButton activeBtn = _tabGroup.ActiveButton;
-            foreach (PanelTabConfig cfg in _tabs)
+            foreach (PanelTabLink cfg in _links)
             {
-                if (cfg.TabButton == activeBtn) cfg.Panel.Show();
+                if (cfg.Button == activeBtn) cfg.Panel.Show();
                 else cfg.Panel.Hide();
             }
         }

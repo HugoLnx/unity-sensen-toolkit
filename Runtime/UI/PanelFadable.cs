@@ -4,6 +4,7 @@ using DG.Tweening;
 using EasyButtons;
 using MyBox;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace SensenToolkit
 {

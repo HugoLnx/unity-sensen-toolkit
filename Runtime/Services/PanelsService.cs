@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -15,6 +16,9 @@ namespace SensenToolkit
             || Keyboard.current?.backspaceKey?.wasPressedThisFrame == true
             || Mouse.current?.rightButton?.wasPressedThisFrame == true;
 
+        public delegate void PanelBackEventHandler(PanelFadable previousTopPanel, PanelFadable topPanel);
+        public event PanelBackEventHandler OnBack = delegate { };
+
         private void OnEnable()
         {
             if (_bindAutoShortcuts) StartCoroutine(BindAutoShortcuts());
@@ -25,6 +29,17 @@ namespace SensenToolkit
             if (panel == null) return;
             _stack.Push(panel);
             panel.OnHidden += OnPanelHidden;
+        }
+
+        public void GoBack(PanelFadable currentPanel = null)
+        {
+            if (currentPanel != null && _stack.Count > 0 && _stack.Peek() != currentPanel)
+            {
+                return;
+            }
+            PanelFadable previousTopPanel = PopTop();
+            PanelFadable topPanel = _stack.Count > 0 ? _stack.Peek() : null;
+            OnBack.Invoke(previousTopPanel, topPanel);
         }
 
         private void OnPanelHidden(PanelFadable panel)
@@ -43,22 +58,18 @@ namespace SensenToolkit
                 yield return null; // Wait for the next frame
                 if (_stack.Count == 0) continue;
 
-                Keyboard keyboard = Keyboard.current;
-                Mouse mouse = Mouse.current;
-                if (keyboard == null) continue;
-
                 if (!IsBackPressedThisFrame) continue;
-                PopTop();
+                GoBack();
             }
         }
 
         private PanelFadable PopTop()
         {
             if (_stack.Count == 0) return null;
-            PanelFadable topPanel = _stack.Pop();
-            topPanel.OnHidden -= OnPanelHidden;
-            topPanel.Hide();
-            return topPanel;
+            PanelFadable previousTopPanel = _stack.Pop();
+            previousTopPanel.OnHidden -= OnPanelHidden;
+            previousTopPanel.Hide();
+            return previousTopPanel;
         }
     }
 }
