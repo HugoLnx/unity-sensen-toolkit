@@ -1,5 +1,4 @@
 using MyBox;
-using SensenToolkit;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -7,7 +6,6 @@ namespace SensenToolkit
 {
     public class HoverSfxBinding : MonoBehaviour, IPointerEnterHandler
     {
-        [Header("Config")]
         [SerializeField, MustBeAssigned] private AudioProfile _hoverSfx;
         private SfxService _sfxService;
         private void Awake()
