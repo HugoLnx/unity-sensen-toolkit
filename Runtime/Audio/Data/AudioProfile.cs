@@ -20,6 +20,9 @@ namespace SensenToolkit
         [field: SerializeField]
         public AudioPlaybackProfileBase PlaybackProfile { get; private set; }
         [field: SerializeField]
+        [field: Tooltip("Ignore playing this sound on the first frames of the game.")]
+        public bool DontPlayOnFirstFrames { get; private set; } = false;
+        [field: SerializeField]
         public bool Enable3D { get; private set; } = false;
         [field: SerializeField, ConditionalField(useMethod: true, method: nameof(Is3DEnabled))]
         public Audio3DSettings Settings3D { get; private set; }

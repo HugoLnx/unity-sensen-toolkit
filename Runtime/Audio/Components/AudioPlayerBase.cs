@@ -1,8 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using MyBox;
 using SensenToolkit;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace SensenToolkit
 {
@@ -19,6 +21,20 @@ namespace SensenToolkit
         private float GlobalVolume => _globalVolume * _volumeModifier * _lowVolumeModifier;
         public AudioOutput LastPlayedOutput { get; private set; }
         private HashSet<Component> _lowVolumeLocks = new();
+        private bool _firstFramesHavePast = false;
+
+        private void OnEnable()
+        {
+            AppCore.OnSceneUnloadStart += OnSceneUnload;
+            AppCore.OnSceneLoadEnd += OnSceneLoad;
+        }
+
+        protected override void OnDisableAny()
+        {
+            base.OnDisableAny();
+            AppCore.OnSceneUnloadStart -= OnSceneUnload;
+            AppCore.OnSceneLoadEnd -= OnSceneLoad;
+        }
 
         public AudioOutput Play(
             AudioProfile profile,
@@ -27,6 +43,11 @@ namespace SensenToolkit
             Action onFinished = null
         )
         {
+            if (profile.DontPlayOnFirstFrames && !_firstFramesHavePast)
+            {
+                Debug.Log($"[{typeof(T)}] Not playing {profile.name} because it is set to not play on the first frames.");
+                return null;
+            }
             AudioPlaybackCommand command = profile.GetCommand(
                 track: track,
                 position: position
@@ -39,7 +60,7 @@ namespace SensenToolkit
             AudioOutput output = _outputPool.Get();
             if (output == null || !output.IsValid)
             {
-                Debug.LogWarning($"[{nameof(T)}] No audio output available. Abort playing {command.Clip.name}");
+                Debug.LogWarning($"[{typeof(T)}] No audio output available. Abort playing {command.Clip.name}");
                 return null;
             }
             LastPlayedOutput = output;
@@ -98,6 +119,24 @@ namespace SensenToolkit
                 output.UpdateVolume(modifier: GlobalVolume);
                 output.UpdateMute(isMute: _isMuted);
             }
+        }
+
+        private void OnSceneLoad(Scene scene)
+        {
+            StartCoroutine(DelayedSetFirstFramesHavePast());
+        }
+
+        private void OnSceneUnload(Scene scene)
+        {
+            _firstFramesHavePast = false;
+        }
+
+        private IEnumerator DelayedSetFirstFramesHavePast()
+        {
+            yield return null;
+            yield return null;
+            yield return null;
+            _firstFramesHavePast = true;
         }
     }
 }
