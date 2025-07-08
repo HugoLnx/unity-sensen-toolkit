@@ -29,6 +29,7 @@ namespace SensenToolkit
 
         private void OnBack(PanelFadable previousTopPanel, PanelFadable topPanel)
         {
+            if (previousTopPanel != null && !previousTopPanel.EnableBackSfx) return;
             AudioProfile sfx = previousTopPanel == null ? _sfxBackError : _sfxBack;
             _sfxService.Play(sfx);
         }

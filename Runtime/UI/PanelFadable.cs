@@ -23,6 +23,7 @@ namespace SensenToolkit
         private const float FAST_SHOW_DURATION = 0.25f;
         private const float FAST_HIDE_DURATION = 0.15f;
 
+        [field: SerializeField] public bool EnableBackSfx { get; private set; } = true;
         [SerializeField] private bool _autoPushToStack = false;
         [SerializeField] private bool _hideOnAwake = true;
         [SerializeField] private PanelFadableSpeed _speedType = PanelFadableSpeed.Normal;
