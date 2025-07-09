@@ -1,4 +1,5 @@
 using System;
+using EasyButtons;
 using MyBox;
 using SensenToolkit;
 using UnityEngine;
@@ -12,10 +13,12 @@ namespace SensenToolkit
         [SerializeField] private bool _saveOnPrefs = true;
         [SerializeField, ReadOnly] private int _highscore;
         private SimpleTimer _saveThrottlingTimer;
+        private bool _wasInitialized = false;
 
         public int Highscore => _highscore;
 
-        public event Action<int> OnHighscoreChanged;
+        public event Action<int> OnHighscoreChanged = delegate { };
+        public event Action OnInit = delegate { };
 
         protected override void AwakeSingleton()
         {
@@ -26,6 +29,8 @@ namespace SensenToolkit
                 _saveThrottlingTimer = new SimpleTimer(_forceSaveDelaySecs);
                 _saveThrottlingTimer.OnEnd += ForceSave;
             }
+            _wasInitialized = true;
+            OnInit.Invoke();
         }
 
         public void ForceSave()
@@ -34,18 +39,32 @@ namespace SensenToolkit
             PlayerPrefs.Save();
         }
 
+        public void EnsureCallAfterInitialization(Action action)
+        {
+            if (_wasInitialized) action.Invoke();
+            OnInit += action;
+        }
+
         public void TryUpdateValue(int value, bool overwrite = false)
         {
             if (!overwrite && _highscore >= value) return;
             _highscore = value;
             PlayerPrefs.SetInt(HIGH_SCORE_KEY, _highscore);
-            OnHighscoreChanged?.Invoke(_highscore);
+            OnHighscoreChanged.Invoke(_highscore);
 
             if (_saveOnPrefs && !_saveThrottlingTimer.IsRunning)
             {
                 ForceSave();
                 _saveThrottlingTimer.Restart();
             }
+        }
+
+        [Button]
+        public void ResetHighscore()
+        {
+            _highscore = 0;
+            PlayerPrefs.DeleteKey(HIGH_SCORE_KEY);
+            OnHighscoreChanged.Invoke(_highscore);
         }
     }
 }
