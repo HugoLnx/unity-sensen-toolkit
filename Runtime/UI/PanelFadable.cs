@@ -76,7 +76,7 @@ namespace SensenToolkit
                 startValue: _canvasGroup.alpha,
                 endValue: 1f
             )
-            .SetUpdate(true)
+            .SetUpdate(isIndependentUpdate: true)
             .SetEase(Ease.InOutSine)
             .OnComplete(() => FinishShow());
 
@@ -95,7 +95,7 @@ namespace SensenToolkit
                 startValue: _canvasGroup.alpha,
                 endValue: 0f
             )
-            .SetUpdate(true)
+            .SetUpdate(isIndependentUpdate: true)
             .SetEase(Ease.InOutSine)
             .OnComplete(() => FinishHide());
 
