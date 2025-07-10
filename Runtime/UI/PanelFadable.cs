@@ -61,6 +61,7 @@ namespace SensenToolkit
 
         private void OnDisable()
         {
+            Tweenx.KillAndNullify(ref _tween);
             SetVisibilityTo(false);
         }
 

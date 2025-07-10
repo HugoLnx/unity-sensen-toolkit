@@ -26,6 +26,11 @@ namespace SensenToolkit
             SetBackgroundHighlight(0f);
         }
 
+        private void OnDisable()
+        {
+            Tweenx.KillAndNullify(ref _tween);
+        }
+
         public void OnPointerEnter(PointerEventData data)
         {
             SmoothEnforceHighlightIntensityTo(1f);
