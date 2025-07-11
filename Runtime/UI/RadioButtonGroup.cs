@@ -26,27 +26,23 @@ namespace SensenToolkit
 
         private void Start()
         {
+            Reinitialize(findButtons: false);
+        }
+
+        private void OnEnable() => RebindAllButtons();
+        private void OnDisable() => UnbindAllButtons();
+
+        public void Reinitialize(bool findButtons = true)
+        {
+            if (findButtons) _radioButtons = GetComponentsInChildren<RadioButton>();
+            RebindAllButtons();
+            _activeIndexes.Clear();
+            _activeButtons.Clear();
             foreach (RadioButton btn in _radioButtons)
             {
                 btn.Reset();
             }
             SwitchToDefaults();
-        }
-
-        private void OnEnable()
-        {
-            foreach (RadioButton button in _radioButtons)
-            {
-                button.OnStateChanged += EnforceOperation;
-            }
-        }
-
-        private void OnDisable()
-        {
-            foreach (RadioButton button in _radioButtons)
-            {
-                button.OnStateChanged -= EnforceOperation;
-            }
         }
 
         public void SwitchToDefaults() => SwitchTo(-1);
@@ -157,6 +153,23 @@ namespace SensenToolkit
                     _activeIndexes.Add(i);
                     _activeButtons.Add(_radioButtons[i]);
                 }
+            }
+        }
+
+        private void RebindAllButtons()
+        {
+            UnbindAllButtons();
+            foreach (RadioButton button in _radioButtons)
+            {
+                button.OnStateChanged += EnforceOperation;
+            }
+        }
+
+        private void UnbindAllButtons()
+        {
+            foreach (RadioButton button in _radioButtons)
+            {
+                button.OnStateChanged -= EnforceOperation;
             }
         }
     }
