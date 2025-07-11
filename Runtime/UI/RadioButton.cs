@@ -54,6 +54,12 @@ namespace SensenToolkit
             if (callbacks && hasChanged) OnStateChanged?.Invoke(this, IsActive);
         }
 
+        public void SetInteractive(bool interactive)
+        {
+            _btn.interactable = interactive;
+            if (!interactive) SwitchTo(false, callbacks: false);
+        }
+
         public void Reset()
         {
             SwitchTo(false, callbacks: false);
