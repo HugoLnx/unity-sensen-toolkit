@@ -2,6 +2,7 @@
 using System.Collections;
 using DG.Tweening;
 using EasyButtons;
+using MyBox;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,7 +20,7 @@ namespace SensenToolkit
         [SerializeField] private TMP_Text _titleText;
         [SerializeField] private TMP_Text _messageText;
         [SerializeField] private Image _iconImg;
-        [SerializeField] private CanvasGroup _canvasGroup;
+        [SerializeField, MustBeAssigned] private CanvasGroup _canvasGroup;
         private SfxService _sfxService;
         private Tween _tween;
         private Vector2 _initialPosition;
@@ -55,7 +56,7 @@ namespace SensenToolkit
 
         private IEnumerator NotificationCoroutine(NotificationInGame notification)
         {
-            _sfxService.Play(_sfxFadeIn);
+            if (_sfxFadeIn != null) _sfxService.Play(_sfxFadeIn);
             Tweenx.KillAndNullify(ref _tween);
 
             IsShowing = true;
@@ -71,7 +72,7 @@ namespace SensenToolkit
 
             yield return new WaitForSeconds(_visibleDuration);
             _tween = FadeOut();
-            _sfxService.Play(_sfxFadeOut);
+            if (_sfxFadeOut != null) _sfxService.Play(_sfxFadeOut);
             yield return _tween.WaitForKill();
             IsShowing = false;
         }
