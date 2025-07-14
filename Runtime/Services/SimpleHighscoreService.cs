@@ -3,6 +3,7 @@ using EasyButtons;
 using MyBox;
 using SensenToolkit;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace SensenToolkit
 {
@@ -14,10 +15,12 @@ namespace SensenToolkit
         [SerializeField, ReadOnly] private int _highscore;
         private SimpleTimer _saveThrottlingTimer;
         private bool _wasInitialized = false;
+        private bool _emittedNewHighscore = false;
 
         public int Highscore => _highscore;
 
         public event Action<int> OnHighscoreChanged = delegate { };
+        public event Action OnNewHighscore = delegate { };
         public event Action OnInit = delegate { };
 
         protected override void AwakeSingleton()
@@ -30,7 +33,36 @@ namespace SensenToolkit
                 _saveThrottlingTimer.OnEnd += ForceSave;
             }
             _wasInitialized = true;
+            BootEmittedHighscore();
             OnInit.Invoke();
+        }
+
+        private void OnEnable()
+        {
+            AppCore.OnSceneLoadEnd += OnSceneLoadEnd;
+            _emittedNewHighscore = false;
+        }
+
+        protected override void OnDisableAny()
+        {
+            base.OnDisableSingleton();
+            AppCore.OnSceneLoadEnd -= OnSceneLoadEnd;
+        }
+
+        private void OnSceneLoadEnd(Scene _)
+        {
+            BootEmittedHighscore();
+        }
+
+        private void BootEmittedHighscore()
+        {
+            if (_highscore == 0)
+            {
+                // If it hasn't been set yet, we don't emit a new highscore.
+                _emittedNewHighscore = true;
+                return;
+            }
+            _emittedNewHighscore = false;
         }
 
         public void ForceSave()
@@ -39,18 +71,29 @@ namespace SensenToolkit
             PlayerPrefs.Save();
         }
 
-        public void EnsureCallAfterInitialization(Action action)
+        public void AddInitializationListener(Action action)
         {
             if (_wasInitialized) action.Invoke();
             OnInit += action;
         }
 
+        public void RemoveInitializationListener(Action action)
+        {
+            OnInit -= action;
+        }
+
         public void TryUpdateValue(int value, bool overwrite = false)
         {
             if (!overwrite && _highscore >= value) return;
+            int previousHighscore = _highscore;
             _highscore = value;
             PlayerPrefs.SetInt(HIGH_SCORE_KEY, _highscore);
             OnHighscoreChanged.Invoke(_highscore);
+            if (_highscore > previousHighscore && !_emittedNewHighscore)
+            {
+                _emittedNewHighscore = true;
+                OnNewHighscore.Invoke();
+            }
 
             if (_saveOnPrefs && !_saveThrottlingTimer.IsRunning)
             {
@@ -65,6 +108,7 @@ namespace SensenToolkit
             _highscore = 0;
             PlayerPrefs.DeleteKey(HIGH_SCORE_KEY);
             OnHighscoreChanged.Invoke(_highscore);
+            BootEmittedHighscore();
         }
     }
 }

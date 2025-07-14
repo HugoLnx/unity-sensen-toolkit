@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace SensenToolkit
 {
-    public class BackPanelButton : MonoBehaviour
+    public class ButtonBackPanel : MonoBehaviour
     {
         [SerializeField, AutoProperty(AutoPropertyMode.Parent)]
         private PanelFadable _parentPanel;
