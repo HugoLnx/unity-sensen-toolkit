@@ -14,7 +14,8 @@ namespace SensenToolkit
         public bool RandomizeClips { get; private set; } = true;
         [field: SerializeField]
         public AudioTrack Track { get; private set; }
-        [field: SerializeField, Range(0f, 4f)]
+        [Tooltip("Volume multiplier (5x should be the max used)")]
+        [field: SerializeField, Range(0f, 7f)]
         public float Volume { get; private set; } = 1f;
 
         [field: SerializeField]
