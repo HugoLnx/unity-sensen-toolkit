@@ -9,6 +9,8 @@ namespace SensenToolkit
     {
         [SerializeField, AutoProperty(AutoPropertyMode.Children)]
         private T[] _allAlphas;
+        [SerializeField]
+        private T[] _extraAlphas = new T[0];
         [SerializeField, ReadOnly] private float _alpha = 1f;
 
         public float Alpha
@@ -24,6 +26,11 @@ namespace SensenToolkit
         private void RefreshAlphas()
         {
             foreach (T alphaComponent in _allAlphas)
+            {
+                alphaComponent.Alpha = _alpha;
+            }
+
+            foreach (T alphaComponent in _extraAlphas)
             {
                 alphaComponent.Alpha = _alpha;
             }
