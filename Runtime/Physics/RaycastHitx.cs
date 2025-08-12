@@ -8,6 +8,7 @@ namespace SensenToolkit
         public Vector3 normal;
         public float distance;
         public Collider collider;
+        public Ray ray;
 
         public static RaycastHitx FromRaycastHit(RaycastHit hit)
         {
