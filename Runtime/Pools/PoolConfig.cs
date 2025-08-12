@@ -1,10 +1,11 @@
 using System;
+using MyBox;
 using UnityEngine;
 
 namespace SensenToolkit
 {
     [Serializable]
-    public struct PoolConfig
+    public class PoolConfig
     {
         public int MinSize;
         public int MaxCreations;
@@ -14,5 +15,6 @@ namespace SensenToolkit
 
         [Tooltip("If true, the instance will deactivate on creation, activate on getting it, and deactivated again on release.")]
         public bool AutoDeactivate;
+        [SerializeField, ReadOnly] public GameObject Container;
     }
 }

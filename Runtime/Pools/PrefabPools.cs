@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using EasyButtons;
 using MyBox;
 using SensenToolkit;
+using UnityEditor;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -88,16 +90,16 @@ namespace SensenToolkit
             {
                 throw new ArgumentException($"Pool for {prefab.name} was added twice.");
             }
-            GameObject container = new($"{prefab.name} Pool Container");
-            container.transform.SetParent(this.transform);
+            GameObject container = EnsureContainer(prefab, config);
+
+            List<Component> initialResources = new();
+            foreach (Transform child in container.transform)
+            {
+                initialResources.Add(child);
+            }
+
             SimpleExpandablePool<Component> pool = new(
-                factory: (SimpleExpandablePool<Component> pool) =>
-                {
-                    Component instance = Instantiate(prefab, container.transform);
-                    instance.name = $"[{pool.Creations.Count + 1}] {prefab.name}";
-                    if (config.AutoDeactivate) instance.gameObject.SetActive(false);
-                    return instance;
-                },
+                factory: (pool) => CreateResource(prefab, config, pool.Creations.Count + 1),
                 minSize: config.MinSize,
                 maxCreations: config.MaxCreations,
                 prefill: config.Prefill
@@ -111,5 +113,47 @@ namespace SensenToolkit
             OnPoolCreated.Invoke(prefab, pool);
             return pool;
         }
+
+        private static Component CreateResource(Component prefab, PoolConfig config, int id)
+        {
+            GameObject container = config.Container;
+            Assertx.IsNotNull(container);
+            Component instance = Instantiate(prefab, container.transform);
+            InitInstance(instance, prefab, config, id);
+            return instance;
+        }
+
+        private static void InitInstance(Component instance, Component prefab, PoolConfig config, int id)
+        {
+            instance.name = $"[{id}] {prefab.name}";
+            if (config.AutoDeactivate) instance.gameObject.SetActive(false);
+        }
+
+        private GameObject EnsureContainer(Component prefab, PoolConfig config)
+        {
+            if (config.Container == null) config.Container = new GameObject($"{prefab.name} Pool Container");
+            GameObject container = config.Container;
+            container.transform.SetParent(this.transform);
+            return container;
+        }
+
+#if UNITY_EDITOR
+        [Button(Mode = ButtonMode.DisabledInPlayMode)]
+        private void PrecreateInstances()
+        {
+            this.transform.DestroyAllChildren(immediate: true);
+            foreach (PredefinedPoolConfig config in _predefinedPoolsConfig)
+            {
+                if (config.Prefab == null || config.Config.MinSize <= 0) continue;
+                GameObject container = EnsureContainer(config.Prefab, config.Config);
+
+                for (int i = 0; i < config.Config.MinSize; i++)
+                {
+                    var instance = PrefabUtility.InstantiatePrefab(config.Prefab, container.transform) as Component;
+                    InitInstance(instance, config.Prefab, config.Config, i + 1);
+                }
+            }
+        }
+#endif
     }
 }

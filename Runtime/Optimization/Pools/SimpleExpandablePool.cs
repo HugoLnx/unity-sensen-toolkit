@@ -26,12 +26,21 @@ namespace SensenToolkit
             Func<SimpleExpandablePool<T>, T> factory,
             int minSize = 20,
             int? maxCreations = null,
-            bool prefill = true
+            bool prefill = true,
+            IEnumerable<T> initialResources = null
         )
         {
             _factory = factory;
             _minSize = minSize;
             _maxCreations = maxCreations ?? minSize + 30;
+
+            if (initialResources != null)
+            {
+                foreach (T resource in initialResources)
+                {
+                    GrowWith(resource);
+                }
+            }
 
             if (prefill) Prefill();
         }
@@ -81,6 +90,11 @@ namespace SensenToolkit
                 throw new InvalidOperationException("Pool has reached max it should create");
             }
             T creation = _factory(this);
+            GrowWith(creation);
+        }
+
+        private void GrowWith(T creation)
+        {
             OnInstanceCreated.Invoke(creation);
             Creations.Add(creation);
             _resources.Enqueue(creation);
