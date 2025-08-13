@@ -15,6 +15,6 @@ namespace SensenToolkit
 
         [Tooltip("If true, the instance will deactivate on creation, activate on getting it, and deactivated again on release.")]
         public bool AutoDeactivate;
-        [SerializeField, ReadOnly] public GameObject Container;
+        [SerializeField] public GameObject Container;
     }
 }

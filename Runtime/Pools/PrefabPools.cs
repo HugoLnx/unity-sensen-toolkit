@@ -102,7 +102,8 @@ namespace SensenToolkit
                 factory: (pool) => CreateResource(prefab, config, pool.Creations.Count + 1),
                 minSize: config.MinSize,
                 maxCreations: config.MaxCreations,
-                prefill: config.Prefill
+                prefill: config.Prefill,
+                initialResources: initialResources
             );
             if (config.AutoDeactivate)
             {
@@ -153,6 +154,7 @@ namespace SensenToolkit
                     InitInstance(instance, config.Prefab, config.Config, i + 1);
                 }
             }
+            UnityEditor.EditorUtility.SetDirty(this);
         }
 #endif
     }
