@@ -104,6 +104,15 @@ namespace SensenToolkit
             UpdateLowVolumeLock();
         }
 
+        public void StopAllAudio()
+        {
+            foreach (AudioOutput output in _outputPool.Creations)
+            {
+                if (output == null) continue;
+                output.Stop();
+            }
+        }
+
         private void UpdateLowVolumeLock()
         {
             float previousModifier = _lowVolumeModifier;
