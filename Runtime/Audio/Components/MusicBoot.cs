@@ -9,8 +9,9 @@ namespace SensenToolkit
 
         private void Start()
         {
-            _bootMusic.Track.Stop();
-            MusicService.Instance.Play(_bootMusic);
+            MusicService musicService = MusicService.Instance;
+            musicService.StopAllAudio();
+            musicService.Play(_bootMusic);
         }
     }
 }
