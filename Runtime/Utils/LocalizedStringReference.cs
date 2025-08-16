@@ -28,7 +28,7 @@ namespace SensenToolkit
             _current = str;
             SetArgs(args);
 
-            if (oldStr != newStr)
+            if (oldStr != null)
             {
                 oldStr.StringChanged -= OnStringChanged;
             }
