@@ -1,5 +1,5 @@
 #if DOTWEEN
-using System;
+using System.Collections;
 using DG.Tweening;
 using DG.Tweening.Core;
 using DG.Tweening.Plugins.Options;
@@ -64,12 +64,28 @@ namespace SensenToolkit
 
         public static void KillAndNullify(ref Tween tween)
         {
-            if (tween != null && tween.IsActive())
-            {
-                tween.Kill();
-            }
+            if (IsActive(tween)) tween.Kill();
             tween = null;
         }
+
+        public static IEnumerator SafeWaitForKill(Tween tween)
+        {
+            if (IsInactive(tween)) yield break;
+            yield return tween.WaitForKill();
+        }
+
+        public static IEnumerator SafeWaitForPosition(Tween tween, float position)
+        {
+            if (IsInactive(tween)) yield break;
+            yield return tween.WaitForPosition(position);
+        }
+
+        public static bool IsInactive(Tween tween)
+        {
+            return tween == null || !tween.IsActive();
+        }
+
+        public static bool IsActive(Tween tween) => !IsInactive(tween);
     }
 }
 #endif

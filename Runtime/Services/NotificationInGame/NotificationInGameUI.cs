@@ -68,12 +68,12 @@ namespace SensenToolkit
 
             _tween = FadeIn();
 
-            yield return _tween.WaitForKill();
+            yield return Tweenx.SafeWaitForKill(_tween);
 
             yield return new WaitForSeconds(_visibleDuration);
             _tween = FadeOut();
             if (_sfxFadeOut != null) _sfxService.Play(_sfxFadeOut);
-            yield return _tween.WaitForKill();
+            yield return Tweenx.SafeWaitForKill(_tween);
             IsShowing = false;
         }
 
