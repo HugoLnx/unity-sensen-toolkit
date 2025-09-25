@@ -1,0 +1,34 @@
+using MyBox;
+using TMPro;
+using UnityEngine;
+using UnityEngine.Localization;
+
+namespace SensenToolkit
+{
+    [RequireComponent(typeof(TMP_Text))]
+    [RequireComponent(typeof(LocalizationTrigger))]
+    public class LocalizedText : MonoBehaviour
+    {
+        [SerializeField, MustBeAssigned] private LocalizedString _string;
+        [SerializeField, AutoProperty] private TMP_Text _text;
+        [SerializeField, AutoProperty] private LocalizationTrigger _localizationTrigger;
+
+        public LocalizedString LocalizedString => _string;
+
+        private void OnEnable()
+        {
+            _localizationTrigger.Subscribe(OnLocalizationTriggered);
+        }
+
+        private void OnDisable()
+        {
+            _localizationTrigger.Unsubscribe(OnLocalizationTriggered);
+        }
+
+        private void OnLocalizationTriggered(Locale _)
+        {
+            if (_string == null) return;
+            _text.text = _string.GetLocalizedString();
+        }
+    }
+}
