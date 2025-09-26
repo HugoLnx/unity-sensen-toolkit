@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using EasyButtons;
 using MyBox;
@@ -19,11 +20,14 @@ namespace SensenToolkit
         [SerializeField] private LocalizedFontLocaleOverrides[] _overrides;
         [SerializeField] private LocalizedString _testLocalizedString;
         [SerializeField] private string _testString;
-        private Dictionary<Locale, LocalizedFontDataToApply> _finalConfigs;
         [SerializeField, AutoProperty] private TMP_Text _text;
         [SerializeField, AutoProperty] private LocalizationTrigger _localizationTrigger;
 
+        private Dictionary<Locale, LocalizedFontDataToApply> _finalConfigs;
         private Dictionary<Locale, LocalizedFontDataToApply> FinalConfigs => _finalConfigs ??= RefreshFinalConfigs();
+
+        private Dictionary<Locale, LocalizedFontLocaleConfig> _localeConfigs;
+        private Dictionary<Locale, LocalizedFontLocaleConfig> LocaleConfigs => _localeConfigs ??= RefreshLocaleConfigs();
 
         private void OnEnable()
         {
@@ -112,53 +116,144 @@ namespace SensenToolkit
 
         private Dictionary<Locale, LocalizedFontDataToApply> RefreshFinalConfigs()
         {
-            Dictionary<Locale, LocalizedFontLocaleOverrides> overrides = BuildOverridesDict();
+            RefreshLocaleConfigs();
+            Dictionary<Locale, LocalizedFontLocaleOverrides> allLocaleOverrides = BuildLocaleOverridesDict();
+            Dictionary<TMP_FontAsset, LocalizedFontLocaleOverrides> allFontOverrides = BuildFontOverridesDict();
 
             _finalConfigs = new Dictionary<Locale, LocalizedFontDataToApply>();
             foreach (LocalizedFontLocaleConfig font in _font.Fonts)
             {
                 if (font.Locale == null) continue;
-                overrides.TryGetValue(font.Locale, out LocalizedFontLocaleOverrides localeOverrides);
+                allLocaleOverrides.TryGetValue(font.Locale, out LocalizedFontLocaleOverrides localeOverrides);
+                allFontOverrides.TryGetValue(font.Font, out LocalizedFontLocaleOverrides fontOverrides);
                 _finalConfigs[font.Locale] = new LocalizedFontDataToApply
                 {
-                    Font = localeOverrides?.Font == null ? font.Font : localeOverrides.Font,
-                    FontSize = localeOverrides?.FontSize ?? (_baseConfig.FontSize * font.FontResizeBy),
-                    Bold = localeOverrides?.Bold ?? font.Bold ?? _baseConfig.Bold,
-                    CharacterSpacing = localeOverrides?.CharacterSpacing ?? font.CharacterSpacing ?? _baseConfig.CharacterSpacing,
-                    WordSpacing = localeOverrides?.WordSpacing ?? font.WordSpacing ?? _baseConfig.WordSpacing,
-                    LineSpacing = localeOverrides?.LineSpacing ?? font.LineSpacing ?? _baseConfig.LineSpacing
+                    Font = GetFirstNonNull(
+                        localeOverrides?.Font,
+                        fontOverrides?.Font,
+                        font.Font
+                    ),
+                    FontSize = GetFirstNonNull(
+                        localeOverrides?.FontSize,
+                        fontOverrides?.FontSize,
+                        _baseConfig.FontSize * font.FontResizeBy
+                    ),
+                    Bold = GetFirstNonNull(
+                        localeOverrides?.Bold,
+                        fontOverrides?.Bold,
+                        _baseConfig.Bold
+                    ),
+                    CharacterSpacing = GetFirstNonNull(
+                        localeOverrides?.CharacterSpacing,
+                        fontOverrides?.CharacterSpacing,
+                        _baseConfig.CharacterSpacing
+                    ),
+                    WordSpacing = GetFirstNonNull(
+                        localeOverrides?.WordSpacing,
+                        fontOverrides?.WordSpacing,
+                        _baseConfig.WordSpacing
+                    ),
+                    LineSpacing = GetFirstNonNull(
+                        localeOverrides?.LineSpacing,
+                        fontOverrides?.LineSpacing,
+                        _baseConfig.LineSpacing
+                    ),
                 };
             }
 
             return _finalConfigs;
         }
 
-        private Dictionary<Locale, LocalizedFontLocaleOverrides> BuildOverridesDict()
+        private Dictionary<Locale, LocalizedFontLocaleConfig> RefreshLocaleConfigs()
+        {
+            _localeConfigs = new Dictionary<Locale, LocalizedFontLocaleConfig>();
+            foreach (LocalizedFontLocaleConfig font in _font.Fonts)
+            {
+                if (font.Locale == null) continue;
+                _localeConfigs[font.Locale] = font;
+            }
+            return _localeConfigs;
+        }
+
+        private Dictionary<Locale, LocalizedFontLocaleOverrides> BuildLocaleOverridesDict()
         {
             Dictionary<Locale, LocalizedFontLocaleOverrides> overrides = new();
-            if (_overridesSO != null)
+            IEnumerable<LocalizedFontLocaleOverrides> allOverrides = FlatEach(
+                _overrides,
+                _overridesSO == null ? null : _overridesSO.Overrides
+            );
+            foreach (LocalizedFontLocaleOverrides ovr in allOverrides)
             {
-                foreach (LocalizedFontLocaleOverrides ovr in _overridesSO.Overrides)
+                foreach (Locale locale in ovr.FilterLocales)
                 {
-                    if (ovr.Locale == null) continue;
-                    overrides[ovr.Locale] = ovr;
-                }
-            }
-
-            foreach (LocalizedFontLocaleOverrides ovr in _overrides)
-            {
-                if (ovr.Locale == null) continue;
-                if (overrides.ContainsKey(ovr.Locale))
-                {
-                    overrides[ovr.Locale] = overrides[ovr.Locale].Override(ovr);
-                }
-                else
-                {
-                    overrides[ovr.Locale] = ovr;
+                    if (locale == null) continue;
+                    if (overrides.ContainsKey(locale))
+                    {
+                        overrides[locale] = overrides[locale].Override(ovr);
+                    }
+                    else
+                    {
+                        overrides[locale] = ovr;
+                    }
                 }
             }
 
             return overrides;
+        }
+
+        private Dictionary<TMP_FontAsset, LocalizedFontLocaleOverrides> BuildFontOverridesDict()
+        {
+            Dictionary<TMP_FontAsset, LocalizedFontLocaleOverrides> overrides = new();
+            IEnumerable<LocalizedFontLocaleOverrides> allOverrides = FlatEach(
+                _overrides,
+                _overridesSO == null ? null : _overridesSO.Overrides
+            );
+            foreach (LocalizedFontLocaleOverrides ovr in allOverrides)
+            {
+                foreach (TMP_FontAsset font in ovr.FilterFonts)
+                {
+                    if (font == null) continue;
+                    if (overrides.ContainsKey(font))
+                    {
+                        overrides[font] = overrides[font].Override(ovr);
+                    }
+                    else
+                    {
+                        overrides[font] = ovr;
+                    }
+                }
+            }
+            return overrides;
+        }
+
+        private IEnumerable<T> FlatEach<T>(params IEnumerable<T>[] collections)
+        {
+            foreach (IEnumerable<T> collection in collections)
+            {
+                if (collection == null) continue;
+                foreach (T item in collection)
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        private T GetFirstNonNull<T>(params T[] items) where T : class
+        {
+            foreach (T item in items)
+            {
+                if (item != null) return item;
+            }
+            return null;
+        }
+
+        private T GetFirstNonNull<T>(params T?[] items) where T : struct
+        {
+            foreach (T? item in items)
+            {
+                if (item.HasValue) return item.Value;
+            }
+            throw new Exception("All items are null");
         }
     }
 }

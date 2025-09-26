@@ -1,14 +1,22 @@
+using System.Collections.Generic;
 using MyBox;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Localization;
+using UnityEngine.Serialization;
 
 namespace SensenToolkit
 {
     [System.Serializable]
     public class LocalizedFontLocaleOverrides
     {
-        public Locale Locale;
+        private readonly List<Locale> _localeEmptyList = new();
+        private readonly List<TMP_FontAsset> _fontEmptyList = new();
+        [SerializeField]
+        private List<Locale> _filterLocales = new();
+        [SerializeField] private LocalizedFontOverrideFilterSO _filterSO;
+
+
         [SerializeField] private bool _overrideFont;
         [SerializeField, ConditionalField(nameof(_overrideFont))] private TMP_FontAsset _font;
 
@@ -26,6 +34,16 @@ namespace SensenToolkit
 
         [SerializeField] private bool _overrideLineSpacing;
         [SerializeField, ConditionalField(nameof(_overrideLineSpacing))] private float _lineSpacing;
+
+        public List<Locale> FilterLocales
+        {
+            get
+            {
+                if (_filterLocales.Count > 0) return _filterLocales;
+                return _filterSO == null ? _localeEmptyList : _filterSO.Locales;
+            }
+        }
+        public List<TMP_FontAsset> FilterFonts => _filterSO == null ? _fontEmptyList : _filterSO.Fonts;
 
         public TMP_FontAsset Font
         {
@@ -91,7 +109,8 @@ namespace SensenToolkit
         {
             return new LocalizedFontLocaleOverrides
             {
-                Locale = this.Locale,
+                _filterLocales = new List<Locale>(this._filterLocales),
+                _filterSO = this._filterSO,
                 Font = this.Font,
                 FontSize = this.FontSize,
                 Bold = this.Bold,
@@ -105,7 +124,8 @@ namespace SensenToolkit
         {
             return new LocalizedFontLocaleOverrides
             {
-                Locale = this.Locale,
+                _filterLocales = new List<Locale>(this._filterLocales),
+                _filterSO = this._filterSO,
                 Font = this.Font != null ? this.Font : other.Font,
                 FontSize = this.FontSize ?? other.FontSize,
                 Bold = this.Bold ?? other.Bold,
