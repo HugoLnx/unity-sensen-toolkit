@@ -48,10 +48,22 @@ namespace SensenToolkit
         private void PullBaseConfig()
         {
             _baseConfig.FontSize = _text.fontSize;
-            _baseConfig.Bold = _text.fontStyle.HasFlag(FontStyles.Bold);
-            _baseConfig.CharacterSpacing = _text.characterSpacing;
-            _baseConfig.WordSpacing = _text.wordSpacing;
-            _baseConfig.LineSpacing = _text.lineSpacing;
+            if (_text.fontStyle.HasFlag(FontStyles.Bold))
+            {
+                _baseConfig.Bold = true;
+            }
+            if (!Mathf.Approximately(_text.characterSpacing, 0f))
+            {
+                _baseConfig.CharacterSpacing = _text.characterSpacing;
+            }
+            if (!Mathf.Approximately(_text.wordSpacing, 0f))
+            {
+                _baseConfig.WordSpacing = _text.wordSpacing;
+            }
+            if (!Mathf.Approximately(_text.lineSpacing, 0f))
+            {
+                _baseConfig.LineSpacing = _text.lineSpacing;
+            }
 #if UNITY_EDITOR
             if (!Application.isPlaying) UnityEditor.EditorUtility.SetDirty(this);
 #endif
@@ -70,11 +82,11 @@ namespace SensenToolkit
             }
             _text.font = config.Font;
             _text.fontSize = config.FontSize;
-            if (config.Bold) _text.fontStyle |= FontStyles.Bold;
+            if (config.Bold.Value) _text.fontStyle |= FontStyles.Bold;
             else _text.fontStyle &= ~FontStyles.Bold;
-            _text.characterSpacing = config.CharacterSpacing;
-            _text.wordSpacing = config.WordSpacing;
-            _text.lineSpacing = config.LineSpacing;
+            _text.characterSpacing = config.CharacterSpacing.Value;
+            _text.wordSpacing = config.WordSpacing.Value;
+            _text.lineSpacing = config.LineSpacing.Value;
 #if UNITY_EDITOR
             if (!Application.isPlaying) UnityEditor.EditorUtility.SetDirty(_text);
 #endif
@@ -141,22 +153,30 @@ namespace SensenToolkit
                     Bold = GetFirstNonNull(
                         localeOverrides?.Bold,
                         fontOverrides?.Bold,
-                        _baseConfig.Bold
+                        _baseConfig.Bold,
+                        font.Bold,
+                        false
                     ),
                     CharacterSpacing = GetFirstNonNull(
                         localeOverrides?.CharacterSpacing,
                         fontOverrides?.CharacterSpacing,
-                        _baseConfig.CharacterSpacing
+                        _baseConfig.CharacterSpacing,
+                        font.CharacterSpacing,
+                        0
                     ),
                     WordSpacing = GetFirstNonNull(
                         localeOverrides?.WordSpacing,
                         fontOverrides?.WordSpacing,
-                        _baseConfig.WordSpacing
+                        _baseConfig.WordSpacing,
+                        font.WordSpacing,
+                        0
                     ),
                     LineSpacing = GetFirstNonNull(
                         localeOverrides?.LineSpacing,
                         fontOverrides?.LineSpacing,
-                        _baseConfig.LineSpacing
+                        _baseConfig.LineSpacing,
+                        font.LineSpacing,
+                        0
                     ),
                 };
             }
