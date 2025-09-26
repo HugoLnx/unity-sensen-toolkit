@@ -8,7 +8,8 @@ namespace SensenToolkit
 {
     public class LocalizationTrigger : MonoBehaviour
     {
-        [SerializeField, AutoProperty(AutoPropertyMode.Parent)] private PanelFadable _parentPanel;
+        [SerializeField, AutoProperty(AutoPropertyMode.Parent, allowEmpty: true)]
+        private PanelFadable _parentPanel;
         private bool IsCritical => _parentPanel == null || _parentPanel.IsVisible;
         public event Action<Locale> OnLocalizationTriggered = delegate { };
 
