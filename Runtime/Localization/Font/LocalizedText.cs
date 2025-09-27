@@ -13,7 +13,11 @@ namespace SensenToolkit
         [SerializeField, AutoProperty] private TMP_Text _text;
         [SerializeField, AutoProperty] private LocalizationTrigger _localizationTrigger;
 
-        public LocalizedString LocalizedString => _string;
+        public LocalizedString LocalizedString
+        {
+            get => _string;
+            set => _string = value;
+        }
 
         private void OnEnable()
         {
