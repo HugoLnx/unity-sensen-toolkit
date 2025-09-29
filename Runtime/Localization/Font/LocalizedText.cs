@@ -31,7 +31,7 @@ namespace SensenToolkit
 
         private void OnLocalizationTriggered(Locale _)
         {
-            if (_string == null) return;
+            if (_string == null || _string.IsEmpty) return;
             _text.text = _string.GetLocalizedString();
         }
     }

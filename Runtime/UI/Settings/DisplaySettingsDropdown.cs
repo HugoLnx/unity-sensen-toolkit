@@ -11,15 +11,22 @@ namespace SensenToolkit
     {
         [SerializeField, ReadOnly] private DisplayService _displayService;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             _displayService = DisplayService.Instance;
+            EnsureDropdownItems();
         }
 
         protected override void OnEnable()
         {
             base.OnEnable();
             _displayService.OnDisplaysChanged += UpdateDropdownOptions;
+        }
+
+        private void OnDisable()
+        {
+            _displayService.OnDisplaysChanged -= UpdateDropdownOptions;
         }
 
         private void UpdateDropdownOptions(List<DisplayInfo> _)
@@ -29,11 +36,16 @@ namespace SensenToolkit
 
         public override IEnumerable<DynamicDropdownItemData> GetDropdownItems()
         {
-            return _displayService.AllDisplays.Select(display => new DynamicDropdownItemData
+            if (_displayService == null) yield break;
+
+            foreach (DisplayInfo display in _displayService.AllDisplays)
             {
-                Name = Sanitize(display.name),
-                Key = display.name,
-            });
+                yield return new DynamicDropdownItemData
+                {
+                    Name = Sanitize(display.name),
+                    Key = display.name,
+                };
+            }
         }
 
         private static string Sanitize(string str)

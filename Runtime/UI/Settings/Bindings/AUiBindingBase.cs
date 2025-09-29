@@ -5,14 +5,12 @@ using UnityEngine;
 
 namespace SensenToolkit
 {
-    public abstract class AUiBindingBase<TvalueSO, TrawValue, TuiValue> : MonoBehaviour
+    public abstract class AUiBindingBase<TvalueSO, TrawValue, TuiValue> : AUiBindingBaseAbstract
     where TvalueSO : AValueSO<TrawValue, TvalueSO>
     {
         [SerializeField, MustBeAssigned] protected TvalueSO Value;
         private bool _ignoreChanges = false;
 
-        protected abstract void BindUiChanges();
-        protected abstract void UnbindUiChanges();
         protected abstract void SetUiValue(TuiValue value);
         protected abstract TuiValue GetUiValue();
         protected abstract TrawValue FromUIValue(TuiValue uiValue);
@@ -58,7 +56,7 @@ namespace SensenToolkit
             }
         }
 
-        public void PushCurrentValueToUi()
+        public override void PushCurrentValueToUi()
         {
             SetUiValue(ToUIValue(Value.Value));
         }

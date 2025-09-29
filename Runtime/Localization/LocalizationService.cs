@@ -1,3 +1,4 @@
+using EasyButtons;
 using UnityEngine;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
@@ -19,6 +20,7 @@ namespace SensenToolkit
         public void EnforceDefaultLocale() => SetLocale(_defaultLocale);
         public void EnforceEnLocale() => SetLocale(_enLocale);
 
+        [Button]
         public void SetLocale(Locale locale)
         {
             LocalizationSettings.SelectedLocale = locale;
