@@ -1,3 +1,4 @@
+using System;
 using EasyButtons;
 using UnityEngine;
 using UnityEngine.Localization;
@@ -24,6 +25,19 @@ namespace SensenToolkit
         public void SetLocale(Locale locale)
         {
             LocalizationSettings.SelectedLocale = locale;
+        }
+
+        public void ForceLocaleWithCode(string code)
+        {
+            Locale locale = LocalizationSettings.AvailableLocales.GetLocale(new LocaleIdentifier(code));
+            if (locale != null)
+            {
+                SetLocale(locale);
+            }
+            else
+            {
+                Debug.LogWarning($"[LocalizationService] Locale with code '{code}' not found. Available locales: {string.Join(", ", LocalizationSettings.AvailableLocales.Locales)}");
+            }
         }
     }
 }
