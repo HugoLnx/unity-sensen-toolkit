@@ -23,11 +23,10 @@ namespace SensenToolkit
         [SerializeField, AutoProperty] private TMP_Text _text;
         [SerializeField, AutoProperty] private LocalizationTrigger _localizationTrigger;
 
-        private Dictionary<Locale, LocalizedFontDataToApply> _finalConfigs;
-        private Dictionary<Locale, LocalizedFontDataToApply> FinalConfigs => _finalConfigs ??= RefreshFinalConfigs();
+        private Dictionary<string, LocalizedFontDataToApply> _finalConfigs;
+        private Dictionary<string, LocalizedFontDataToApply> FinalConfigs
+            => _finalConfigs != null && _finalConfigs.Count > 0 ? _finalConfigs : RefreshFinalConfigs();
 
-        private Dictionary<Locale, LocalizedFontLocaleConfig> _localeConfigs;
-        private Dictionary<Locale, LocalizedFontLocaleConfig> LocaleConfigs => _localeConfigs ??= RefreshLocaleConfigs();
 
         private void OnEnable()
         {
@@ -75,7 +74,7 @@ namespace SensenToolkit
 #if UNITY_EDITOR
             RefreshFinalConfigs();
 #endif
-            if (!FinalConfigs.TryGetValue(locale, out LocalizedFontDataToApply config))
+            if (!FinalConfigs.TryGetValue(AsKey(locale), out LocalizedFontDataToApply config))
             {
                 Debug.LogWarning($"[AttachLocalizedFont:{name}] No config for locale {locale}");
                 return;
@@ -126,19 +125,18 @@ namespace SensenToolkit
             _text.text = str;
         }
 
-        private Dictionary<Locale, LocalizedFontDataToApply> RefreshFinalConfigs()
+        private Dictionary<string, LocalizedFontDataToApply> RefreshFinalConfigs()
         {
-            RefreshLocaleConfigs();
-            Dictionary<Locale, LocalizedFontLocaleOverrides> allLocaleOverrides = BuildLocaleOverridesDict();
+            Dictionary<string, LocalizedFontLocaleOverrides> allLocaleOverrides = BuildLocaleOverridesDict();
             Dictionary<TMP_FontAsset, LocalizedFontLocaleOverrides> allFontOverrides = BuildFontOverridesDict();
 
-            _finalConfigs = new Dictionary<Locale, LocalizedFontDataToApply>();
+            _finalConfigs = new Dictionary<string, LocalizedFontDataToApply>();
             foreach (LocalizedFontLocaleConfig font in _font.Fonts)
             {
                 if (font.Locale == null) continue;
-                allLocaleOverrides.TryGetValue(font.Locale, out LocalizedFontLocaleOverrides localeOverrides);
+                allLocaleOverrides.TryGetValue(AsKey(font.Locale), out LocalizedFontLocaleOverrides localeOverrides);
                 allFontOverrides.TryGetValue(font.Font, out LocalizedFontLocaleOverrides fontOverrides);
-                _finalConfigs[font.Locale] = new LocalizedFontDataToApply
+                _finalConfigs[AsKey(font.Locale)] = new LocalizedFontDataToApply
                 {
                     Font = GetFirstNonNull(
                         localeOverrides?.Font,
@@ -181,23 +179,17 @@ namespace SensenToolkit
                 };
             }
 
+            if (_finalConfigs.Count == 0)
+            {
+                Debug.LogWarning($"[AttachLocalizedFont:{name}] No fonts in the font set {_font}");
+            }
+
             return _finalConfigs;
         }
 
-        private Dictionary<Locale, LocalizedFontLocaleConfig> RefreshLocaleConfigs()
+        private Dictionary<string, LocalizedFontLocaleOverrides> BuildLocaleOverridesDict()
         {
-            _localeConfigs = new Dictionary<Locale, LocalizedFontLocaleConfig>();
-            foreach (LocalizedFontLocaleConfig font in _font.Fonts)
-            {
-                if (font.Locale == null) continue;
-                _localeConfigs[font.Locale] = font;
-            }
-            return _localeConfigs;
-        }
-
-        private Dictionary<Locale, LocalizedFontLocaleOverrides> BuildLocaleOverridesDict()
-        {
-            Dictionary<Locale, LocalizedFontLocaleOverrides> overrides = new();
+            Dictionary<string, LocalizedFontLocaleOverrides> overrides = new();
             IEnumerable<LocalizedFontLocaleOverrides> allOverrides = FlatEach(
                 _overrides,
                 _overridesSO == null ? null : _overridesSO.Overrides
@@ -207,13 +199,14 @@ namespace SensenToolkit
                 foreach (Locale locale in ovr.FilterLocales)
                 {
                     if (locale == null) continue;
-                    if (overrides.ContainsKey(locale))
+                    string localeKey = AsKey(locale);
+                    if (overrides.ContainsKey(localeKey))
                     {
-                        overrides[locale] = overrides[locale].Override(ovr);
+                        overrides[localeKey] = overrides[localeKey].Override(ovr);
                     }
                     else
                     {
-                        overrides[locale] = ovr;
+                        overrides[localeKey] = ovr;
                     }
                 }
             }
@@ -275,5 +268,7 @@ namespace SensenToolkit
             }
             throw new Exception("All items are null");
         }
+
+        private string AsKey(Locale locale) => locale == null ? "<null>" : locale.Identifier.Code;
     }
 }
