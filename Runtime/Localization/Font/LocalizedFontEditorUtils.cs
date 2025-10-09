@@ -1,6 +1,7 @@
 using EasyButtons;
 using UnityEngine;
 using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 
 namespace SensenToolkit
 {
@@ -26,6 +27,7 @@ namespace SensenToolkit
         [Button]
         private void ApplyLocaleAndTestTextRecursive(Locale locale)
         {
+            LocalizationSettings.StringDatabase.ResetState();
             LocalizedFont[] localizedFonts = GetComponentsInChildren<LocalizedFont>(true);
             foreach (LocalizedFont lf in localizedFonts)
             {
