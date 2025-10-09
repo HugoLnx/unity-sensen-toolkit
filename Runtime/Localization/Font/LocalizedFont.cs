@@ -133,50 +133,59 @@ namespace SensenToolkit
             _finalConfigs = new Dictionary<string, LocalizedFontDataToApply>();
             foreach (LocalizedFontLocaleConfig font in _font.Fonts)
             {
-                if (font.Locale == null) continue;
-                allLocaleOverrides.TryGetValue(AsKey(font.Locale), out LocalizedFontLocaleOverrides localeOverrides);
-                allFontOverrides.TryGetValue(font.Font, out LocalizedFontLocaleOverrides fontOverrides);
-                _finalConfigs[AsKey(font.Locale)] = new LocalizedFontDataToApply
+                foreach (Locale locale in font.Locales)
                 {
-                    Font = GetFirstNonNull(
-                        localeOverrides?.Font,
-                        fontOverrides?.Font,
-                        font.Font
-                    ),
-                    FontSize = GetFirstNonNull(
-                        localeOverrides?.FontSize,
-                        fontOverrides?.FontSize,
-                        _baseConfig.FontSize * font.FontResizeBy
-                    ),
-                    Bold = GetFirstNonNull(
-                        localeOverrides?.Bold,
-                        fontOverrides?.Bold,
-                        _baseConfig.Bold,
-                        font.Bold,
-                        false
-                    ),
-                    CharacterSpacing = GetFirstNonNull(
-                        localeOverrides?.CharacterSpacing,
-                        fontOverrides?.CharacterSpacing,
-                        _baseConfig.CharacterSpacing,
-                        font.CharacterSpacing,
-                        0
-                    ),
-                    WordSpacing = GetFirstNonNull(
-                        localeOverrides?.WordSpacing,
-                        fontOverrides?.WordSpacing,
-                        _baseConfig.WordSpacing,
-                        font.WordSpacing,
-                        0
-                    ),
-                    LineSpacing = GetFirstNonNull(
-                        localeOverrides?.LineSpacing,
-                        fontOverrides?.LineSpacing,
-                        _baseConfig.LineSpacing,
-                        font.LineSpacing,
-                        0
-                    ),
-                };
+                    if (locale == null) continue;
+                    string localeKey = AsKey(locale);
+                    if (_finalConfigs.ContainsKey(localeKey))
+                    {
+                        Debug.LogWarning($"[AttachLocalizedFont:{name}] Locale {locale} is included multiple times.");
+                        continue;
+                    }
+                    allLocaleOverrides.TryGetValue(localeKey, out LocalizedFontLocaleOverrides localeOverrides);
+                    allFontOverrides.TryGetValue(font.Font, out LocalizedFontLocaleOverrides fontOverrides);
+                    _finalConfigs[localeKey] = new LocalizedFontDataToApply
+                    {
+                        Font = GetFirstNonNull(
+                            localeOverrides?.Font,
+                            fontOverrides?.Font,
+                            font.Font
+                        ),
+                        FontSize = GetFirstNonNull(
+                            localeOverrides?.FontSize,
+                            fontOverrides?.FontSize,
+                            _baseConfig.FontSize * font.FontResizeBy
+                        ),
+                        Bold = GetFirstNonNull(
+                            localeOverrides?.Bold,
+                            fontOverrides?.Bold,
+                            _baseConfig.Bold,
+                            font.Bold,
+                            false
+                        ),
+                        CharacterSpacing = GetFirstNonNull(
+                            localeOverrides?.CharacterSpacing,
+                            fontOverrides?.CharacterSpacing,
+                            _baseConfig.CharacterSpacing,
+                            font.CharacterSpacing,
+                            0
+                        ),
+                        WordSpacing = GetFirstNonNull(
+                            localeOverrides?.WordSpacing,
+                            fontOverrides?.WordSpacing,
+                            _baseConfig.WordSpacing,
+                            font.WordSpacing,
+                            0
+                        ),
+                        LineSpacing = GetFirstNonNull(
+                            localeOverrides?.LineSpacing,
+                            fontOverrides?.LineSpacing,
+                            _baseConfig.LineSpacing,
+                            font.LineSpacing,
+                            0
+                        ),
+                    };
+                }
             }
 
             if (_finalConfigs.Count == 0)

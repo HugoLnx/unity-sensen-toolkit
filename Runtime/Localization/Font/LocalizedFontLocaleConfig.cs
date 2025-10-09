@@ -1,15 +1,17 @@
+using System.Collections.Generic;
 using MyBox;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Localization;
+using UnityEngine.Serialization;
 
 namespace SensenToolkit
 {
     [System.Serializable]
     public class LocalizedFontLocaleConfig
     {
-        public Locale Locale;
-        public TMP_FontAsset Font;
+        [MustBeAssigned] public TMP_FontAsset Font;
+        public List<Locale> Locales;
 
         public float FontResizeBy = 1f;
 

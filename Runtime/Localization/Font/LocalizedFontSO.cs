@@ -13,16 +13,27 @@ namespace SensenToolkit
 
         private void OnValidate()
         {
-            HashSet<Locale> locales = new(LocalizationSettings.AvailableLocales.Locales);
+            HashSet<Locale> missingLocales = new(LocalizationSettings.AvailableLocales.Locales);
+            HashSet<Locale> includedLocales = new();
             foreach (LocalizedFontLocaleConfig font in Fonts)
             {
-                if (font.Locale == null) continue;
-                locales.Remove(font.Locale);
+                foreach (Locale locale in font.Locales)
+                {
+                    if (locale == null) continue;
+
+                    if (includedLocales.Contains(locale))
+                    {
+                        Debug.LogError($"[LocalizedFontSO:{name}] Locale {locale} is included multiple times.");
+                    }
+
+                    missingLocales.Remove(locale);
+                    includedLocales.Add(locale);
+                }
             }
 
-            if (locales.Count > 0)
+            if (missingLocales.Count > 0)
             {
-                Debug.LogError($"[LocalizedFontSO:{name}] Missing locales: {string.Join(", ", locales)}");
+                Debug.LogError($"[LocalizedFontSO:{name}] Missing locales: {string.Join(", ", missingLocales)}");
             }
         }
     }
