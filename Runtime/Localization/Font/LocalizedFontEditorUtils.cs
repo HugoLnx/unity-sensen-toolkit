@@ -27,7 +27,10 @@ namespace SensenToolkit
         [Button]
         private void ApplyLocaleAndTestTextRecursive(Locale locale)
         {
+            // Clear cached data LocalizationSettings
             LocalizationSettings.StringDatabase.ResetState();
+            LocalizationSettings.AssetDatabase.ReleaseAllTables();
+            LocalizationSettings.AssetDatabase.ResetState();
             LocalizedFont[] localizedFonts = GetComponentsInChildren<LocalizedFont>(true);
             foreach (LocalizedFont lf in localizedFonts)
             {
