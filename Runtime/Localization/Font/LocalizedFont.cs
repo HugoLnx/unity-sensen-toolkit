@@ -47,6 +47,14 @@ namespace SensenToolkit
         private void PullBaseConfig()
         {
             _baseConfig.FontSize = _text.fontSize;
+            if (_text.enableAutoSizing)
+            {
+                _baseConfig.FontAutoSize = new FontAutoSizeConfig(true, _text.fontSizeMin, _text.fontSizeMax);
+            }
+            else
+            {
+                _baseConfig.FontAutoSize = new FontAutoSizeConfig(false, 5f, 30f);
+            }
             if (_text.fontStyle.HasFlag(FontStyles.Bold))
             {
                 _baseConfig.Bold = true;
@@ -81,11 +89,20 @@ namespace SensenToolkit
             }
             _text.font = config.Font;
             _text.fontSize = config.FontSize;
+            _text.enableAutoSizing = config.FontAutoSize.Enabled;
+            _text.fontSizeMin = config.FontAutoSize.MinSize;
+            _text.fontSizeMax = config.FontAutoSize.MaxSize;
             if (config.Bold.Value) _text.fontStyle |= FontStyles.Bold;
             else _text.fontStyle &= ~FontStyles.Bold;
             _text.characterSpacing = config.CharacterSpacing.Value;
             _text.wordSpacing = config.WordSpacing.Value;
             _text.lineSpacing = config.LineSpacing.Value;
+            _text.margin = new Vector4(
+                _text.margin.x,
+                config.MarginTop ?? _text.margin.y,
+                _text.margin.z,
+                config.MarginBottom ?? _text.margin.w
+            );
 #if UNITY_EDITOR
             if (!Application.isPlaying) UnityEditor.EditorUtility.SetDirty(_text);
 #endif
@@ -156,6 +173,15 @@ namespace SensenToolkit
                             fontOverrides?.FontSize,
                             _baseConfig.FontSize * font.FontResizeBy
                         ),
+                        FontAutoSize = GetFirstNonNull(
+                            localeOverrides?.FontAutoSize,
+                            fontOverrides?.FontAutoSize,
+                            new FontAutoSizeConfig(
+                                _baseConfig.FontAutoSize.Enabled,
+                                _baseConfig.FontAutoSize.MinSize * font.FontResizeBy,
+                                _baseConfig.FontAutoSize.MaxSize * font.FontResizeBy
+                            )
+                        ),
                         Bold = GetFirstNonNull(
                             localeOverrides?.Bold,
                             fontOverrides?.Bold,
@@ -184,6 +210,18 @@ namespace SensenToolkit
                             font.LineSpacing,
                             0
                         ),
+                        MarginTop = GetFirstNonNull(
+                            localeOverrides?.MarginTop,
+                            fontOverrides?.MarginTop,
+                            _baseConfig.MarginTop,
+                            _text.margin.y
+                        ),
+                        MarginBottom = GetFirstNonNull(
+                            localeOverrides?.MarginBottom,
+                            fontOverrides?.MarginBottom,
+                            _baseConfig.MarginBottom,
+                            _text.margin.w
+                        )
                     };
                 }
             }

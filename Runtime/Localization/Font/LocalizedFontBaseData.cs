@@ -9,6 +9,7 @@ namespace SensenToolkit
     public class LocalizedFontBaseData
     {
         public float FontSize;
+        public FontAutoSizeConfig FontAutoSize = new FontAutoSizeConfig(false, 5f, 30f);
 
         [SerializeField] private bool _overrideBold;
         [SerializeField, FormerlySerializedAs("Bold")]
@@ -29,6 +30,14 @@ namespace SensenToolkit
         [SerializeField, FormerlySerializedAs("LineSpacing")]
         [ConditionalField(nameof(_overrideLineSpacing))]
         private float _lineSpacing;
+
+        [SerializeField] private bool _overrideMarginTop;
+        [SerializeField, ConditionalField(nameof(_overrideMarginTop))]
+        private float _marginTop;
+
+        [SerializeField] private bool _overrideMarginBottom;
+        [SerializeField, ConditionalField(nameof(_overrideMarginBottom))]
+        private float _marginBottom;
 
         public bool? Bold
         {
@@ -67,6 +76,26 @@ namespace SensenToolkit
             {
                 _overrideLineSpacing = value != null;
                 _lineSpacing = value ?? 0f;
+            }
+        }
+
+        public float? MarginTop
+        {
+            get => _overrideMarginTop ? _marginTop : null;
+            set
+            {
+                _overrideMarginTop = value != null;
+                _marginTop = value ?? 0f;
+            }
+        }
+
+        public float? MarginBottom
+        {
+            get => _overrideMarginBottom ? _marginBottom : null;
+            set
+            {
+                _overrideMarginBottom = value != null;
+                _marginBottom = value ?? 0f;
             }
         }
     }

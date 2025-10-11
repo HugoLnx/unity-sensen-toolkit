@@ -3,7 +3,6 @@ using MyBox;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Localization;
-using UnityEngine.Serialization;
 
 namespace SensenToolkit
 {
@@ -23,6 +22,10 @@ namespace SensenToolkit
         [SerializeField] private bool _overrideFontSize;
         [SerializeField, ConditionalField(nameof(_overrideFontSize))] private float _fontSize = 14f;
 
+        [SerializeField] private bool _overrideFontAutoSize;
+        [SerializeField, ConditionalField(nameof(_overrideFontAutoSize))]
+        private FontAutoSizeConfig _fontAutoSize;
+
         [SerializeField] private bool _overrideBold;
         [SerializeField, ConditionalField(nameof(_overrideBold))] private bool _bold;
 
@@ -34,6 +37,13 @@ namespace SensenToolkit
 
         [SerializeField] private bool _overrideLineSpacing;
         [SerializeField, ConditionalField(nameof(_overrideLineSpacing))] private float _lineSpacing;
+
+
+        [SerializeField] private bool _overrideMarginTop;
+        [SerializeField, ConditionalField(nameof(_overrideMarginTop))] private float _marginTop;
+
+        [SerializeField] private bool _overrideMarginBottom;
+        [SerializeField, ConditionalField(nameof(_overrideMarginBottom))] private float _marginBottom;
 
         public List<Locale> FilterLocales
         {
@@ -62,6 +72,16 @@ namespace SensenToolkit
             {
                 _overrideFontSize = value != null;
                 _fontSize = value ?? 14f;
+            }
+        }
+
+        public FontAutoSizeConfig? FontAutoSize
+        {
+            get => _overrideFontAutoSize ? _fontAutoSize : null;
+            set
+            {
+                _overrideFontAutoSize = value != null;
+                _fontAutoSize = value ?? new FontAutoSizeConfig(false, 5f, 30f);
             }
         }
 
@@ -105,6 +125,26 @@ namespace SensenToolkit
             }
         }
 
+        public float? MarginTop
+        {
+            get => _overrideMarginTop ? _marginTop : null;
+            set
+            {
+                _overrideMarginTop = value != null;
+                _marginTop = value ?? 0f;
+            }
+        }
+
+        public float? MarginBottom
+        {
+            get => _overrideMarginBottom ? _marginBottom : null;
+            set
+            {
+                _overrideMarginBottom = value != null;
+                _marginBottom = value ?? 0f;
+            }
+        }
+
         public LocalizedFontLocaleOverrides Clone()
         {
             return new LocalizedFontLocaleOverrides
@@ -113,10 +153,13 @@ namespace SensenToolkit
                 _filterSO = this._filterSO,
                 Font = this.Font,
                 FontSize = this.FontSize,
+                FontAutoSize = this.FontAutoSize,
                 Bold = this.Bold,
                 CharacterSpacing = this.CharacterSpacing,
                 WordSpacing = this.WordSpacing,
-                LineSpacing = this.LineSpacing
+                LineSpacing = this.LineSpacing,
+                MarginTop = this.MarginTop,
+                MarginBottom = this.MarginBottom
             };
         }
 
@@ -128,10 +171,13 @@ namespace SensenToolkit
                 _filterSO = this._filterSO,
                 Font = this.Font != null ? this.Font : other.Font,
                 FontSize = this.FontSize ?? other.FontSize,
+                FontAutoSize = this.FontAutoSize ?? other.FontAutoSize,
                 Bold = this.Bold ?? other.Bold,
                 CharacterSpacing = this.CharacterSpacing ?? other.CharacterSpacing,
                 WordSpacing = this.WordSpacing ?? other.WordSpacing,
-                LineSpacing = this.LineSpacing ?? other.LineSpacing
+                LineSpacing = this.LineSpacing ?? other.LineSpacing,
+                MarginTop = this.MarginTop ?? other.MarginTop,
+                MarginBottom = this.MarginBottom ?? other.MarginBottom
             };
         }
     }
