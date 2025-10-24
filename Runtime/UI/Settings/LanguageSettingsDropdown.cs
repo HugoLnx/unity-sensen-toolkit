@@ -15,9 +15,19 @@ namespace SensenToolkit
         [Tooltip("If enabled, only the locales in the list will be shown. Otherwise, all available locales will be shown.")]
         [SerializeField] private bool _filterLocales = false;
         [SerializeField] private List<Locale> _onlyLocales;
+        private LocalizationService _localizationService;
+        private LocalizationService LocService => _localizationService = _localizationService == null
+            ? LocalizationService.Instance
+            : _localizationService;
         private IEnumerable<Locale> Locales => _filterLocales
             ? _onlyLocales
             : LocalizationSettings.AvailableLocales.Locales;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            _localizationService = LocalizationService.Instance;
+        }
 
         public override IEnumerable<DynamicDropdownItemData> GetDropdownItems()
         {
@@ -34,9 +44,10 @@ namespace SensenToolkit
 
         private string GetPrettyLocaleName(Locale locale)
         {
+            LocaleExtraData extraData = LocService.GetLocaleExtraData(locale);
             string[] parts = locale.LocaleName.Split("/").Select(part => part.Trim()).ToArray();
-            string nativeName = parts[0];
-            string englishName = parts.Length > 1 ? parts[1] : null;
+            string nativeName = extraData.NativeName;
+            string englishName = extraData.NativeName.Equals(extraData.EnglishName) ? null : extraData.EnglishName;
             float nativeNameFontEmSize = GetItemNativeNameFontEmSize(locale);
             float englishNameFontEmSize = GetItemEnglishNameFontEmSize(locale);
             string nativeNameFormatted = string.Format(ITEM_LOCALE_NATIVE_NAME_FORMAT, nativeNameFontEmSize, nativeName)
