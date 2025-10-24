@@ -45,7 +45,6 @@ namespace SensenToolkit
         private string GetPrettyLocaleName(Locale locale)
         {
             LocaleExtraData extraData = LocService.GetLocaleExtraData(locale);
-            string[] parts = locale.LocaleName.Split("/").Select(part => part.Trim()).ToArray();
             string nativeName = extraData.NativeName;
             string englishName = extraData.NativeName.Equals(extraData.EnglishName) ? null : extraData.EnglishName;
             float nativeNameFontEmSize = GetItemNativeNameFontEmSize(locale);
