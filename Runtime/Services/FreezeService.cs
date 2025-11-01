@@ -8,8 +8,11 @@ namespace SensenToolkit
     public class FreezeService : ATransientSingleton<FreezeService>
     {
         [SerializeField] private bool _scaleTime = true;
+        [SerializeField] private bool _autoFreezeOnAppFocusLost = true;
+        [SerializeField] private bool _autobindKeyShortcutsOnEditor = true;
         [SerializeField, ReadOnly] private bool _isFrozen;
-        private HashSet<Component> _locks = new();
+        private MultiHolderHub _freezeHoldersHub;
+        private MultiHolderHub FreezeHoldersHub => _freezeHoldersHub ??= CreateFreezeHoldersHub();
 
         public bool IsFrozen => _isFrozen;
 
@@ -21,35 +24,58 @@ namespace SensenToolkit
             SetIsFrozen(false, force: true);
         }
 
-        public void Freeze(Component c)
+        public void HoldFreeze(object holder)
         {
-            if (c == null) return;
-            _locks.Add(c);
-            RefreshIsFrozen();
+            FreezeHoldersHub.Hold(holder);
         }
 
-        public void Unfreeze(Component c)
+        public void ReleaseFreeze(object holder)
         {
-            if (c == null) return;
-            _locks.Remove(c);
-            RefreshIsFrozen();
+            FreezeHoldersHub.Release(holder);
         }
 
         private void RefreshIsFrozen()
         {
-            SetIsFrozen(_locks.Count > 0);
+            SetIsFrozen(FreezeHoldersHub.IsHolding);
         }
 
-        private void SetIsFrozen(bool turnOn, bool force = false)
+        private void SetIsFrozen(bool isFrozen, bool force = false)
         {
-            if (!force && _isFrozen == turnOn) return;
-            _isFrozen = turnOn;
+            bool previousIsFrozen = IsFrozen;
+            if (!force && _isFrozen == isFrozen) return;
+            _isFrozen = isFrozen;
             if (_scaleTime)
             {
-                Time.timeScale = _isFrozen ? 0f : 1f;
+                Time.timeScale = IsFrozen ? 0f : 1f;
             }
-            _locks.Clear();
-            OnChanged?.Invoke(_isFrozen);
+            if (!_isFrozen) FreezeHoldersHub.ReleaseAllHolders();
+            if (previousIsFrozen != IsFrozen)
+            {
+                OnChanged?.Invoke(IsFrozen);
+            }
         }
+
+        private const string APPLICATION_FOCUS_FREEZE_LOCK = "APPLICATION_FOCUS_FREEZE_LOCK";
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!_autoFreezeOnAppFocusLost) return;
+            if (hasFocus)
+            {
+                ReleaseFreeze(APPLICATION_FOCUS_FREEZE_LOCK);
+            }
+            else
+            {
+                HoldFreeze(APPLICATION_FOCUS_FREEZE_LOCK);
+            }
+        }
+
+        private MultiHolderHub CreateFreezeHoldersHub()
+            => new(onChanged: OnHoldersChanged);
+
+        private void OnHoldersChanged(bool _)
+        {
+            RefreshIsFrozen();
+        }
+
     }
 }

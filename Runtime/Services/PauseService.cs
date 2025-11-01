@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using MyBox;
 using UnityEngine;
@@ -8,74 +9,102 @@ namespace SensenToolkit
 {
     public class PauseService : ATransientSingleton<PauseService>
     {
-        [SerializeField] private bool _bindShortcuts = true;
-        [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
-        private FreezeService _freezeService;
+        [Tooltip("Optional action reference for 'pause' action.")]
+        [SerializeField] private DynamicInputActionReference _pauseAction;
+        [Tooltip("Optional action reference for 'unpause' action.")]
+        [SerializeField] private DynamicInputActionReference _unpauseAction;
+        [Tooltip("If true, automatically bind 'pause' key shortcuts (P, Escape).")]
+        [SerializeField] private bool _autobindKeyShortcuts = true;
         [SerializeField, ReadOnly] private bool _isPaused = false;
-        private readonly HashSet<Component> _blockers = new();
+        private bool? _lastIsPaused = null;
+        private MultiHolderHub _blockHolders;
+        private MultiHolderHub BlockHolders => _blockHolders ??= CreateBlockHolders();
 
         public bool IsPaused => _isPaused && IsAllowedToPause;
-        private bool IsAllowedToPause => _blockers.Count == 0;
+        private bool IsAllowedToPause => !BlockHolders.IsHolding;
 
-        public event System.Action<bool> OnChanged;
+        public event System.Action<bool> OnChanged = delegate { };
 
         protected override void AwakeAny()
         {
             base.AwakeAny();
             SwitchPausedTo(false);
+            _pauseAction.OnBindingAdd += action => action.performed += OnPauseActionPerformed;
+            _pauseAction.OnBindingRemove += action => action.performed -= OnPauseActionPerformed;
+            _unpauseAction.OnBindingAdd += action => action.performed += OnUnpauseActionPerformed;
+            _unpauseAction.OnBindingRemove += action => action.performed -= OnUnpauseActionPerformed;
         }
 
-        private void Update()
+        private void OnEnable()
         {
-            if (!_bindShortcuts) return;
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard == null) return;
-
-            if (_isPaused)
+            if (_autobindKeyShortcuts)
             {
-                bool pressedUnpause = keyboard?.pKey?.wasPressedThisFrame == true;
-                if (pressedUnpause) SwitchPausedTo(false);
+                StartCoroutine(AutoKeysShortcutBindingLoop());
             }
-            else
+            _pauseAction.EnsureBinded();
+            _unpauseAction.EnsureBinded();
+        }
+
+        protected override void OnDisableAny()
+        {
+            base.OnDisableAny();
+            _pauseAction.EnsureUnbinded();
+            _unpauseAction.EnsureUnbinded();
+        }
+
+        public void SetActionCollection(IInputActionCollection2 actions)
+        {
+            _pauseAction.SetActionCollection(actions);
+            _unpauseAction.SetActionCollection(actions);
+        }
+
+        private void OnPauseActionPerformed(InputAction.CallbackContext _)
+            => SwitchPausedTo(true);
+
+        private void OnUnpauseActionPerformed(InputAction.CallbackContext _)
+            => SwitchPausedTo(false);
+
+        private IEnumerator AutoKeysShortcutBindingLoop()
+        {
+            while (true)
             {
-                bool pressedPause = keyboard?.pKey?.wasPressedThisFrame == true ||
-                                    keyboard?.escapeKey?.wasPressedThisFrame == true;
-                if (pressedPause) SwitchPausedTo(true);
+                yield return null; // Wait for the next frame
+
+                Keyboard keyboard = Keyboard.current;
+                if (keyboard == null) yield break;
+
+                if (_isPaused)
+                {
+                    bool pressedUnpause = keyboard?.pKey?.wasPressedThisFrame == true;
+                    if (pressedUnpause) SwitchPausedTo(false);
+                }
+                else
+                {
+                    bool pressedPause = keyboard?.pKey?.wasPressedThisFrame == true ||
+                                        keyboard?.escapeKey?.wasPressedThisFrame == true;
+                    if (pressedPause) SwitchPausedTo(true);
+                }
             }
         }
 
         public void SwitchPausedTo(bool isPaused)
         {
-            bool wasPaused = IsPaused;
             _isPaused = isPaused;
-            RefreshPauseState(wasPaused);
+            RefreshPauseState();
         }
 
-        public void BlockPause(Component blocker)
-        {
-            if (blocker == null) return;
-            bool wasPaused = IsPaused;
-            _blockers.Add(blocker);
-            RefreshPauseState(wasPaused);
-        }
-
-        public void UnblockPause(Component blocker)
-        {
-            if (blocker == null) return;
-            bool wasPaused = IsPaused;
-            _blockers.Remove(blocker);
-            RefreshPauseState(wasPaused);
-        }
-
-        private void RefreshPauseState(bool wasPaused)
+        private void RefreshPauseState()
         {
             bool isPaused = IsPaused;
-            if (isPaused == wasPaused) return;
+            if (isPaused == _lastIsPaused) return;
 
-            if (isPaused) _freezeService.Freeze(this);
-            else _freezeService.Unfreeze(this);
-
-            OnChanged?.Invoke(isPaused);
+            _lastIsPaused = isPaused;
+            OnChanged.Invoke(isPaused);
         }
+
+        public void BlockPause(Component blocker) => BlockHolders.Hold(blocker);
+        public void UnblockPause(Component blocker) => BlockHolders.Release(blocker);
+        private MultiHolderHub CreateBlockHolders() => new(onChanged: OnBlockersChanged);
+        private void OnBlockersChanged(bool isBlocked) => RefreshPauseState();
     }
 }

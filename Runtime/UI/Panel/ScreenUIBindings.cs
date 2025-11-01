@@ -1,6 +1,7 @@
 #if DOTWEEN
 using MyBox;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SensenToolkit
 {
@@ -9,14 +10,15 @@ namespace SensenToolkit
     {
 
         [Tooltip("Freeze gameplay while this screen is shown.")]
-        [SerializeField] private bool _freeze = true;
+        [SerializeField, FormerlySerializedAs("_freeze")]
+        private bool _holdFocus = true;
 
         [Tooltip("Pause is blocked while this screen is shown.")]
         [SerializeField] private bool _blockPause = true;
 
         [SerializeField, AutoProperty] private PanelFadable _panel;
         [SerializeField, AutoProperty(AutoPropertyMode.Scene, allowEmpty: true)]
-        private FreezeService _freezeService;
+        private PanelsService _panelsService;
         [SerializeField, AutoProperty(AutoPropertyMode.Scene, allowEmpty: true)]
         private PauseService _pauseService;
 
@@ -37,12 +39,12 @@ namespace SensenToolkit
         private void LockGameplay()
         {
             BlockPause();
-            Freeze();
+            HoldFocus();
         }
 
         private void UnlockGameplay()
         {
-            Unfreeze();
+            ReleaseFocus();
             UnblockPause();
         }
 
@@ -61,16 +63,16 @@ namespace SensenToolkit
             _pauseService.UnblockPause(this);
         }
 
-        private void Freeze()
+        private void HoldFocus()
         {
-            if (!_freeze || _freezeService == null) return;
-            _freezeService.Freeze(this);
+            if (!_holdFocus || _panelsService == null) return;
+            _panelsService.AddFocusHolder(_panel);
         }
 
-        private void Unfreeze()
+        private void ReleaseFocus()
         {
-            if (!_freeze || _freezeService == null) return;
-            _freezeService.Unfreeze(this);
+            if (!_holdFocus || _panelsService == null) return;
+            _panelsService.RemoveFocusHolder(_panel);
         }
     }
 }
