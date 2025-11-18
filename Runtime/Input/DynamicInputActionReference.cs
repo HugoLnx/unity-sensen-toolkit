@@ -11,6 +11,8 @@ namespace SensenToolkit
         private IInputActionCollection2 _actionCollection;
         private InputAction _action;
         private InputAction _bindedAction;
+        private bool _originalActionInitialized = false;
+        private InputAction _originalAction = null;
 
         public InputAction Action => ResolveAction();
         public event Action<InputAction> OnBindingAdd = delegate { };
@@ -22,6 +24,12 @@ namespace SensenToolkit
             _action = null;
             if (_bindedAction == null) return;
             EnsureBinded();
+        }
+
+        public InputAction OriginalActionClone()
+        {
+            EnsureOriginalAction();
+            return _originalAction?.Clone();
         }
 
         public void EnsureBinded()
@@ -47,11 +55,22 @@ namespace SensenToolkit
             if (_action != null) return _action;
             if (_actionRef == null) return null;
 
+            EnsureOriginalAction();
+
             _action = _actionCollection != null
                 ? _actionCollection.FindAction(_actionRef.name)
                 : _actionRef.action;
 
+
             return _action;
+        }
+
+        private void EnsureOriginalAction()
+        {
+            if (_originalActionInitialized) return;
+            _originalAction = _actionRef.action.Clone();
+            _originalActionInitialized = true;
+            Debug.Log($"EnsureOriginalAction {_originalAction.bindings.Count} bindings");
         }
     }
 }
