@@ -16,6 +16,8 @@ namespace SensenToolkit
         [Header("References")]
         [SerializeField, AutoProperty(AutoPropertyMode.Scene, allowEmpty: true)]
         private FreezeService _freezeService;
+        [SerializeField, AutoProperty(AutoPropertyMode.Scene, allowEmpty: true)]
+        private InputToolkitService _inputToolkit;
 
         private Stack<PanelFadable> _stack = new();
         public bool IsHoldingFocus => FocusHoldersHub.IsHolding;
@@ -32,6 +34,10 @@ namespace SensenToolkit
             base.AwakeAny();
             _backAction.OnBindingAdd += action => action.performed += OnBackActionPerformed;
             _backAction.OnBindingRemove += action => action.performed -= OnBackActionPerformed;
+            if (_inputToolkit != null)
+            {
+                _inputToolkit.BindActionCollection(SetActionCollection);
+            }
         }
 
         private void OnEnable()
@@ -44,6 +50,15 @@ namespace SensenToolkit
         {
             base.OnDisableAny();
             _backAction.EnsureUnbinded();
+        }
+
+        protected override void OnDestroyAny()
+        {
+            base.OnDestroyAny();
+            if (_inputToolkit != null)
+            {
+                _inputToolkit.UnbindActionCollection(SetActionCollection);
+            }
         }
 
         public void PushTop(PanelFadable panel)
