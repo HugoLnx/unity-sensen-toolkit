@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
-using System.Data.SqlTypes;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using EasyButtons;
 using MyBox;
@@ -20,6 +17,8 @@ namespace SensenToolkit
         private const string DEVICE_SHORTNAME_PREFIX = "[DEVICE]";
         private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
         private static readonly Regex s_versionRegex = new(@"\d[\.,\d_-]+", RegexOptions.Compiled);
+        private static readonly Regex s_specialCharsRegex = new(@"[^\d\w]", RegexOptions.Compiled);
+        private static readonly Regex s_firstWordRegex = new(@"[^a-zA-Z]*([A-Z][A-Z]+|[A-Z][a-z]+|[a-z]+)", RegexOptions.Compiled);
 
         [SerializeField]
         private List<string> _blockedDeletions = new(){
@@ -216,7 +215,6 @@ namespace SensenToolkit
                         Binding = binding,
                         IsComposite = true,
                         CompositeParts = compositeParts,
-                        DisplayString = BuildCompositeDisplayStringFor(compositeParts),
                         DeviceIdGroup = compositeParts[0].DeviceIdGroup,
                         DeviceShortName = compositeParts[0].DeviceShortName,
                         IsDefaultBinding = compositeParts[0].IsDefaultBinding,
@@ -230,6 +228,7 @@ namespace SensenToolkit
 
                     foreach (ClassifiedBinding part in compositeParts)
                     {
+                        part.ParentComposite = compositeBinding;
                         if (part.PathSubControlName != compositeBinding.PathSubControlName)
                         {
                             compositeBinding.PathSubControlName = null;
@@ -244,31 +243,6 @@ namespace SensenToolkit
                     yield return ClassifyBinding(binding, i);
                 }
             }
-        }
-
-        private string BuildCompositeDisplayStringFor(List<ClassifiedBinding> compositeParts)
-        {
-            string subControl = compositeParts[0].PathSubControlName;
-            foreach (ClassifiedBinding part in compositeParts)
-            {
-                if (part.PathSubControlName != subControl)
-                {
-                    subControl = null;
-                    break;
-                }
-            }
-
-            if (subControl != null)
-            {
-                return compositeParts[0].IsKnownDevice
-                    ? subControl
-                    : BuildUnknownDeviceDisplayString(
-                        compositeParts[0].DeviceShortName,
-                        subControl
-                    );
-            }
-
-            return string.Join(",", compositeParts.Select(part => part.DisplayString));
         }
 
         private ClassifiedBinding ClassifyBinding(InputBinding binding, int orderIndex)
@@ -288,11 +262,6 @@ namespace SensenToolkit
             }
 
             string deviceIdGroup = isKnownDevice ? null : groups.First();
-            string buttonName = binding.ToDisplayString();
-
-            string displayString = isKnownDevice
-                ? buttonName
-                : BuildUnknownDeviceDisplayString(deviceShortName, buttonName);
 
             bool isDefaultBinding = _defaultBindingPaths.Contains(binding.effectivePath);
 
@@ -305,7 +274,6 @@ namespace SensenToolkit
                 IsKnownDevice = isKnownDevice,
                 DeviceIdGroup = deviceIdGroup,
                 DeviceShortName = deviceShortName,
-                DisplayString = displayString,
                 OrderIndex = orderIndex,
                 IsDefaultBinding = isDefaultBinding,
                 PathDeviceName = pathParts[0],
@@ -313,9 +281,6 @@ namespace SensenToolkit
                 PathControlName = pathParts.Length >= 2 ? pathParts[^1] : null
             };
         }
-
-        private string BuildUnknownDeviceDisplayString(string deviceShortName, string buttonName)
-            => $"{deviceShortName}#{buttonName}";
 
         private void OnAddClicked()
         {
@@ -426,29 +391,60 @@ namespace SensenToolkit
 
         private string DeviceShortName(InputDevice device)
         {
-            string manufacturer = s_blankRegex.Replace(device.description.manufacturer, "");
-            string product = s_blankRegex.Replace(device.description.product, "")
+            string manufacturer = (device.description.manufacturer ?? "").Trim();
+            string product = (device.description.product ?? "").Trim();
+
+            if (!String.IsNullOrEmpty(manufacturer)) manufacturer = s_blankRegex.Replace(manufacturer, "");
+            product = s_blankRegex.Replace(product, " ");
+
+            if (String.IsNullOrEmpty(manufacturer) && !String.IsNullOrEmpty(product))
+            {
+                Match firstWordMatch = s_firstWordRegex.Match(product);
+                if (firstWordMatch.Success
+                    && firstWordMatch.Length < (product.Length - 2)
+                    && firstWordMatch.Length >= 2)
+                {
+                    manufacturer = firstWordMatch.Value;
+                    product = product
+                    .Replace(manufacturer, "", StringComparison.OrdinalIgnoreCase)
+                    .Trim();
+                }
+            }
+
+            product = s_blankRegex.Replace(product, "");
+            if (String.IsNullOrEmpty(product)) product = device.name ?? "Unknown";
+
+            product = product
                 .Replace("generic", "Gn", StringComparison.OrdinalIgnoreCase)
                 .Replace("usb", "U", StringComparison.OrdinalIgnoreCase)
-                .Replace("controller", "Ctr", StringComparison.OrdinalIgnoreCase)
-                .Replace("gamepad", "Gad", StringComparison.OrdinalIgnoreCase)
-                .Replace("joystick", "Joy", StringComparison.OrdinalIgnoreCase)
-                .Replace("wired", "Wrd", StringComparison.OrdinalIgnoreCase)
-                .Replace("wireless", "Wls", StringComparison.OrdinalIgnoreCase)
-                .Replace("android", "Adr", StringComparison.OrdinalIgnoreCase)
+                .Replace("controller", "Ct", StringComparison.OrdinalIgnoreCase)
+                .Replace("gamepad", "Gd", StringComparison.OrdinalIgnoreCase)
+                .Replace("joystick", "Jy", StringComparison.OrdinalIgnoreCase)
+                .Replace("wired", "Wd", StringComparison.OrdinalIgnoreCase)
+                .Replace("wireless", "Ws", StringComparison.OrdinalIgnoreCase)
+                .Replace("android", "Ad", StringComparison.OrdinalIgnoreCase)
                 .Replace("elite", "El", StringComparison.OrdinalIgnoreCase)
-                .Replace("dualshock", "Dua", StringComparison.OrdinalIgnoreCase);
+                .Replace("dualshock", "Du", StringComparison.OrdinalIgnoreCase);
             Match versionMatch = s_versionRegex.Match(device.name);
             string version = versionMatch.Success ? versionMatch.Value : "";
+            if (!string.IsNullOrEmpty(version))
+            {
+                product = product
+                    .Replace(version, "", StringComparison.OrdinalIgnoreCase)
+                    .Trim();
+                version = s_specialCharsRegex.Replace(version, "");
+            }
 
-            int goalLength = 15;
-            int dotLength = 1;
-            int manufacturerLength = Mathf.Min(6, manufacturer.Length);
-            int versionLength = Mathf.Min(4, version.Length);
-            int productLength = Mathf.Min(goalLength - manufacturerLength - versionLength - dotLength, product.Length);
-            string shortName = String.IsNullOrEmpty(manufacturer) ? "" : $"{manufacturer[..manufacturerLength]}.";
-            shortName += product[..productLength];
-            shortName += version[..versionLength];
+            const int TARGET_LENGTH = 7;
+            const int MAX_VERSION_LENGTH = 3;
+            int manufacturerLength = Mathf.Min(3, manufacturer.Length);
+            int versionLength = Mathf.Min(MAX_VERSION_LENGTH, version.Length);
+            int productLength = Mathf.Min(TARGET_LENGTH - manufacturerLength, product.Length);
+            string shortName = String.IsNullOrEmpty(manufacturer)
+                ? ""
+                : manufacturer[..manufacturerLength].Capitalize(forceLowerEnding: true);
+            shortName += product[..productLength].Capitalize(forceLowerEnding: true);
+            shortName += version[..versionLength].ToLowerInvariant();
             return shortName;
         }
 

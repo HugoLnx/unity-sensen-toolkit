@@ -7,10 +7,12 @@ namespace SensenToolkit
     {
         private static readonly Regex RegexNonSlugChars = new(@"[^\d\w-]", RegexOptions.Compiled);
         private static readonly Regex RegexBlankChars = new(@"\s+", RegexOptions.Compiled);
-        public static string Capitalize(this string str)
+        public static string Capitalize(this string str, bool forceLowerEnding = false)
         {
             if (str == null || str.Length == 0) return str;
-            return char.ToUpper(str[0]) + str.Substring(1);
+            string others = str[1..];
+            if (forceLowerEnding) others = others.ToLowerInvariant();
+            return char.ToUpperInvariant(str[0]) + others;
         }
 
         public static string ToSlug(this string str)

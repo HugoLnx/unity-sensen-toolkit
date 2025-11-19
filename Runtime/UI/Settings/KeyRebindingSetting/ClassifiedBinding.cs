@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 namespace SensenToolkit
 {
-    public struct ClassifiedBinding
+    public class ClassifiedBinding
     {
         public InputBinding Binding;
         public string PathDeviceName;
@@ -12,12 +12,18 @@ namespace SensenToolkit
         public bool IsKeyboardAndMouse;
         public bool IsKnownDevice;
         public string DeviceIdGroup;
-        public string DisplayString;
         public string DeviceShortName;
         public int OrderIndex;
         public bool IsDefaultBinding;
         public bool IsComposite;
         public List<ClassifiedBinding> CompositeParts;
+        public ClassifiedBinding ParentComposite;
+
+        private string _displayString;
+        public string DisplayString => _displayString ??= BindingDisplayStringUtils.GenerateDisplayStringFor(this);
+        private string _displayStringShortenedForComposite;
+        public string DisplayStringShortenedForComposite => _displayStringShortenedForComposite
+            ??= BindingDisplayStringUtils.GenerateDisplayStringFor(this, shortenForComposite: true);
 
         public IEnumerable<ClassifiedBinding> EnumerateAllBindings()
         {
