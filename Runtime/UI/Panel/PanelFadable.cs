@@ -47,6 +47,7 @@ namespace SensenToolkit
 
         private Tween _tween;
         public bool IsVisible { get; private set; }
+        public bool IsFullyVisible => IsVisible && _canvasGroup.alpha >= 1f;
         public CanvasGroup CanvasGroup => _canvasGroup;
 
         public event System.Action<PanelFadable> OnPrepareToShow = delegate { };
@@ -71,6 +72,8 @@ namespace SensenToolkit
             PrepareToShow();
 
             duration ??= ChooseShowDuration();
+            float diffToShow = 1f - _canvasGroup.alpha;
+            duration *= diffToShow;
             _tween = Tweenx.FromTo(
                 action: (v) => _canvasGroup.alpha = v,
                 duration: duration.Value,
@@ -90,6 +93,8 @@ namespace SensenToolkit
             PrepareToHide();
 
             duration ??= ChooseHideDuration();
+            float diffToHide = _canvasGroup.alpha;
+            duration *= diffToHide;
             _tween = Tweenx.FromTo(
                 action: (v) => _canvasGroup.alpha = v,
                 duration: duration.Value,

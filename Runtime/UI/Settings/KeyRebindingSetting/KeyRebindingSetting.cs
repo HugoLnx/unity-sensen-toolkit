@@ -50,6 +50,9 @@ namespace SensenToolkit
         [SerializeField, AutoProperty(AutoPropertyMode.Scene, allowEmpty: true)]
         private InputToolkitService _inputToolkit;
 
+        [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
+        private KeyRebindingOverlay _overlay;
+
         private bool _performingAction;
         private Color _originalTextColor;
         private InputAction _testAction = null;
@@ -184,7 +187,7 @@ namespace SensenToolkit
 
                 displayStrings.Add(str);
             }
-            return string.Join(" | ", displayStrings);
+            return string.Join(" ", displayStrings);
         }
 
         private IEnumerable<ClassifiedBinding> CreateClassifiedBindings(IReadOnlyList<InputBinding> bindings)
@@ -288,6 +291,7 @@ namespace SensenToolkit
             InputAction action = _actionReference.Action;
             bool wasEnabled = action.enabled;
             action.Disable();
+            _overlay.ShowListening(action.name);
             RebindingOperation op = action.PerformInteractiveRebinding()
             .WithTimeout(10f);
             if (_cancelThroughEscape)
@@ -324,21 +328,23 @@ namespace SensenToolkit
 
                 InputAction action = _actionReference.Action;
                 bool isAlreadyBound = action.controls.Any(control => InputControlPath.Matches(newPath, control));
+                string groups = isKnownDevice
+                    ? mainGroup
+                    : $"{mainGroup};{unknownDeviceGroup};{DEVICE_SHORTNAME_PREFIX}{unknownDeviceShortName}";
+                InputBinding newBinding = new()
+                {
+                    path = newPath,
+                    groups = groups
+                };
+                ClassifiedBinding classifiedBinding = ClassifyBinding(newBinding, -1);
+                _overlay.UpdateKeyName(classifiedBinding.DisplayString);
                 if (isAlreadyBound)
                 {
                     Debug.Log($"[Bind:{_actionReference.Action.name}] Path {newPath} is already bound, skipping adding new binding.");
                 }
                 else
                 {
-                    string groups = isKnownDevice
-                        ? mainGroup
-                        : $"{mainGroup};{unknownDeviceGroup};{DEVICE_SHORTNAME_PREFIX}{unknownDeviceShortName}";
-
-                    action.AddBinding(new InputBinding
-                    {
-                        path = newPath,
-                        groups = groups
-                    });
+                    action.AddBinding(newBinding);
                 }
             })
             .OnComplete(operation =>
@@ -346,12 +352,14 @@ namespace SensenToolkit
                 operation.Dispose();
                 if (wasEnabled) action.Enable();
                 OnRebindComplete();
+                _overlay.Hide(delay: 0.15f);
             })
             .OnCancel(operation =>
             {
                 operation.Dispose();
                 if (wasEnabled) action.Enable();
                 Debug.Log($"[Bind:{_actionReference.Action.name}] Canceled");
+                _overlay.Hide();
             })
             .Start();
         }
