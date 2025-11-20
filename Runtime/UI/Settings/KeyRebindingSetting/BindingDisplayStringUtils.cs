@@ -8,7 +8,7 @@ namespace SensenToolkit
     public static class BindingDisplayStringUtils
     {
         private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
-        public static string GenerateDisplayStringFor(ClassifiedBinding classifiedBinding, bool shortenForComposite = false)
+        public static string GenerateDisplayStringFor(BindingMetadata classifiedBinding, bool shortenForComposite = false)
         {
             string buttonName = CustomButtonNameFor(classifiedBinding, shortenForComposite);
 
@@ -25,7 +25,7 @@ namespace SensenToolkit
             return s_blankRegex.Replace(displayString, "");
         }
 
-        private static string CustomButtonNameFor(ClassifiedBinding cb, bool shortenForComposite = false)
+        private static string CustomButtonNameFor(BindingMetadata cb, bool shortenForComposite = false)
         {
             if (cb.IsComposite) return CustomButtonNameForComposite(cb);
             switch (cb.PathDeviceName)
@@ -88,7 +88,7 @@ namespace SensenToolkit
                     return null;
             }
         }
-        private static string BuildSubControlDisplayString(ClassifiedBinding cb, string subControlFilter)
+        private static string BuildSubControlDisplayString(BindingMetadata cb, string subControlFilter)
         {
             string subControlName = cb.PathSubControlName ?? cb.PathControlName;
             if (subControlName != subControlFilter) return null;
@@ -99,10 +99,10 @@ namespace SensenToolkit
                 : $"{compositeGroupName}{cb.PathControlName.Capitalize()}";
         }
 
-        private static string CustomButtonNameForComposite(ClassifiedBinding cb)
+        private static string CustomButtonNameForComposite(BindingMetadata cb)
         {
             string commonCompositeGroupName = null;
-            foreach (ClassifiedBinding part in cb.CompositeParts)
+            foreach (BindingMetadata part in cb.CompositeParts)
             {
                 string compositeGroupName = GetCompositeGroupNameFor(part);
 
@@ -117,7 +117,7 @@ namespace SensenToolkit
             return commonCompositeGroupName;
         }
 
-        private static string GetCompositeGroupNameFor(ClassifiedBinding part)
+        private static string GetCompositeGroupNameFor(BindingMetadata part)
         {
             bool isArrowKey = part.IsKeyboardAndMouse && part.PathControlName.EndsWith("Arrow");
             if (isArrowKey) return "ArrowKeys";
@@ -155,11 +155,11 @@ namespace SensenToolkit
         private static string BuildUnknownDeviceDisplayString(string deviceShortName, string buttonName)
             => $"{deviceShortName}#{buttonName}";
 
-        private static string BuildCompositeDisplayStringFor(ClassifiedBinding classifiedBinding)
+        private static string BuildCompositeDisplayStringFor(BindingMetadata classifiedBinding)
         {
-            List<ClassifiedBinding> compositeParts = classifiedBinding.CompositeParts;
+            List<BindingMetadata> compositeParts = classifiedBinding.CompositeParts;
             string subControl = compositeParts[0].PathSubControlName;
-            foreach (ClassifiedBinding part in compositeParts)
+            foreach (BindingMetadata part in compositeParts)
             {
                 if (part.PathSubControlName != subControl)
                 {
@@ -180,7 +180,7 @@ namespace SensenToolkit
 
             List<string> displayStrings = new();
             bool areAllSingleChar = true;
-            foreach (ClassifiedBinding part in compositeParts)
+            foreach (BindingMetadata part in compositeParts)
             {
                 string partDisplayString = part.DisplayStringShortenedForComposite;
                 displayStrings.Add(partDisplayString);

@@ -1,25 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using EasyButtons;
 using MyBox;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using static UnityEngine.InputSystem.InputActionRebindingExtensions;
 
 namespace SensenToolkit
 {
     public class KeyRebindingSetting : MonoBehaviour
     {
-        private const string DEVICE_SHORTNAME_PREFIX = "[DEVICE]";
-        private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
-        private static readonly Regex s_versionRegex = new(@"\d[\.,\d_-]+", RegexOptions.Compiled);
-        private static readonly Regex s_specialCharsRegex = new(@"[^\d\w]", RegexOptions.Compiled);
-        private static readonly Regex s_firstWordRegex = new(@"[^a-zA-Z]*([A-Z][A-Z]+|[A-Z][a-z]+|[a-z]+)", RegexOptions.Compiled);
-
         [SerializeField]
         private List<string> _blockedDeletions = new(){
             "<Keyboard>/escape",
@@ -47,19 +41,21 @@ namespace SensenToolkit
         [SerializeField, AutoProperty]
         private PanelChildVisibilityEvents _visibility;
 
-        [SerializeField, AutoProperty(AutoPropertyMode.Scene, allowEmpty: true)]
+        [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
         private InputToolkitService _inputToolkit;
 
         [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
         private KeyRebindingOverlay _overlay;
 
         private bool _performingAction;
-        private Color _originalTextColor;
         private InputAction _testAction = null;
         private HashSet<string> _hoveredBindings = new();
         private InputAction _originalAction;
-        private HashSet<string> _defaultBindingPaths = new();
         private HashSet<string> _blockedDeletionsSet;
+        private BindingMetadataProcessor _metadataProcessor;
+        private RebindingMetadataProcessor _rebindingProcessor;
+        private KeyListener _keyListener;
+
         private HashSet<string> BlockedDeletionsSet => _blockedDeletionsSet ??= new(_blockedDeletions);
 
         public bool IsVisible => _visibility.IsVisible;
@@ -67,21 +63,19 @@ namespace SensenToolkit
         private void Awake()
         {
             _originalAction = _actionReference.OriginalActionClone();
-            foreach (InputBinding binding in _originalAction.bindings)
-            {
-                _defaultBindingPaths.Add(binding.effectivePath);
-            }
             if (_inputToolkit != null)
             {
                 _inputToolkit.BindActionCollection(SetActionCollection);
             }
             _visibility.OnShow += OnShow;
             _visibility.OnHidden += OnHidden;
+            _metadataProcessor = new BindingMetadataProcessor(_inputToolkit, _originalAction);
+            _rebindingProcessor = new RebindingMetadataProcessor(_inputToolkit, _originalAction);
+            _keyListener = new KeyListener(_cancelThroughEscape, _ignoreMouseDelta);
         }
 
         private void Start()
         {
-            _originalTextColor = _keyText.color;
             RecloneTestAction();
             RefreshIfVisible();
         }
@@ -138,27 +132,26 @@ namespace SensenToolkit
         private void RefreshComponents()
         {
             _keyText.text = GetBindingDisplayString(_actionReference.Action);
-            // _keyText.color = _performingAction ? _performingColor : _originalTextColor;
         }
 
         private string GetBindingDisplayString(InputAction action)
         {
             if (action == null || action.bindings.Count == 0) return "Unbound";
 
-            IEnumerable<ClassifiedBinding> classifiedBindings = CreateClassifiedBindings(action.bindings);
+            IEnumerable<BindingMetadata> bindingsMetadata = _metadataProcessor.ProcessAllBindings(action.bindings);
 
             List<string> displayStrings = new();
-            foreach (ClassifiedBinding cb in classifiedBindings)
+            foreach (BindingMetadata bindingData in bindingsMetadata)
             {
-                string str = cb.DisplayString;
-                string bindingId = cb.Binding.id.ToString();
+                string str = bindingData.DisplayString;
+                string bindingId = bindingData.Binding.id.ToString();
                 bool isPerforming = _performingAction
                     && _testAction != null
                     && _testAction.activeControl != null
-                    && cb.EnumerateAllBindings().Any((cb) => InputControlPath.Matches(cb.Binding.effectivePath, _testAction.activeControl));
+                    && bindingData.EnumerateAllBindings().Any((b) => InputControlPath.Matches(b.Binding.effectivePath, _testAction.activeControl));
                 str = $"<link=\"{bindingId}\">{str}</link>";
                 bool isHovered = _hoveredBindings.Contains(bindingId);
-                bool canBeDeleted = CanBindingBeDeleted(cb);
+                bool canBeDeleted = CanBindingBeDeleted(bindingData);
                 bool isInteracting = isPerforming || isHovered;
                 if (isInteracting)
                 {
@@ -176,7 +169,7 @@ namespace SensenToolkit
                         str = $"<i>{str}</i>";
                     }
                 }
-                else if (cb.IsDefaultBinding)
+                else if (bindingData.IsDefaultBinding)
                 {
                     str = $"<color={_defaultBindingColor.ToHex()}>{str}</color>";
                 }
@@ -190,184 +183,50 @@ namespace SensenToolkit
             return string.Join(" ", displayStrings);
         }
 
-        private IEnumerable<ClassifiedBinding> CreateClassifiedBindings(IReadOnlyList<InputBinding> bindings)
+        private void OnAddClicked() => OnAddClickedAsync().Forget();
+
+        private async UniTaskVoid OnAddClickedAsync()
         {
-            for (int i = 0; i < bindings.Count; i++)
-            {
-                InputBinding binding = bindings[i];
-                if (binding.isPartOfComposite)
-                {
-                    Debug.LogError($"[KeyRebindingSetting:{_actionReference.Action.name}] Skipping composite part binding: {binding.ToDisplayString()}");
-                    continue;
-                }
-                if (binding.isComposite)
-                {
-                    List<ClassifiedBinding> compositeParts = new();
-                    int compositeOrderIndex = i;
-                    i++;
-                    while (i < bindings.Count && bindings[i].isPartOfComposite)
-                    {
-                        ClassifiedBinding bindingPart = ClassifyBinding(bindings[i], i);
-                        compositeParts.Add(bindingPart);
-                        i++;
-                    }
-                    i--;
-
-                    var compositeBinding = new ClassifiedBinding
-                    {
-                        Binding = binding,
-                        IsComposite = true,
-                        CompositeParts = compositeParts,
-                        DeviceIdGroup = compositeParts[0].DeviceIdGroup,
-                        DeviceShortName = compositeParts[0].DeviceShortName,
-                        IsDefaultBinding = compositeParts[0].IsDefaultBinding,
-                        IsKeyboardAndMouse = compositeParts[0].IsKeyboardAndMouse,
-                        IsKnownDevice = compositeParts[0].IsKnownDevice,
-                        PathDeviceName = compositeParts[0].PathDeviceName,
-                        PathControlName = null,
-                        PathSubControlName = compositeParts[0].PathSubControlName,
-                        OrderIndex = compositeOrderIndex
-                    };
-
-                    foreach (ClassifiedBinding part in compositeParts)
-                    {
-                        part.ParentComposite = compositeBinding;
-                        if (part.PathSubControlName != compositeBinding.PathSubControlName)
-                        {
-                            compositeBinding.PathSubControlName = null;
-                            break;
-                        }
-                    }
-
-                    yield return compositeBinding;
-                }
-                else
-                {
-                    yield return ClassifyBinding(binding, i);
-                }
-            }
-        }
-
-        private ClassifiedBinding ClassifyBinding(InputBinding binding, int orderIndex)
-        {
-            HashSet<string> groups = new((binding.groups ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries));
-            bool isKeyboardAndMouse = groups.Contains(_inputToolkit.BindingGroupKeyboardAndMouse);
-            groups.ExceptWith(_inputToolkit.BindingGroups);
-            bool isKnownDevice = groups.Count == 0;
-            string deviceNameGroup = isKnownDevice
-                ? null
-                : groups.FirstOrDefault(g => g.StartsWith(DEVICE_SHORTNAME_PREFIX, StringComparison.OrdinalIgnoreCase));
-            string deviceShortName = null;
-            if (deviceNameGroup != null)
-            {
-                groups.Remove(deviceNameGroup);
-                deviceShortName = deviceNameGroup[DEVICE_SHORTNAME_PREFIX.Length..];
-            }
-
-            string deviceIdGroup = isKnownDevice ? null : groups.First();
-
-            bool isDefaultBinding = _defaultBindingPaths.Contains(binding.effectivePath);
-
-            string path = binding.effectivePath;
-            string[] pathParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            return new ClassifiedBinding
-            {
-                Binding = binding,
-                IsKeyboardAndMouse = isKeyboardAndMouse,
-                IsKnownDevice = isKnownDevice,
-                DeviceIdGroup = deviceIdGroup,
-                DeviceShortName = deviceShortName,
-                OrderIndex = orderIndex,
-                IsDefaultBinding = isDefaultBinding,
-                PathDeviceName = pathParts[0],
-                PathSubControlName = pathParts.Length >= 3 ? string.Join('/', pathParts[1..^1]) : null,
-                PathControlName = pathParts.Length >= 2 ? pathParts[^1] : null
-            };
-        }
-
-        private void OnAddClicked()
-        {
-            Debug.Log($"[Bind:{_actionReference.Action.name}] Start");
             InputAction action = _actionReference.Action;
-            bool wasEnabled = action.enabled;
-            action.Disable();
+            Debug.Log($"[Bind:{action.name}:{action.type}:{action.expectedControlType}] Started");
             _overlay.ShowListening(action.name);
-            RebindingOperation op = action.PerformInteractiveRebinding()
-            .WithTimeout(10f);
-            if (_cancelThroughEscape)
+
+            KeyListeningResult result = await ListenToKey();
+
+            if (result.IsSuccess)
             {
-                op = op
-                .WithCancelingThrough("<Keyboard>/escape")
-                .WithControlsExcluding("<Keyboard>/escape");
-            }
-            if (_ignoreMouseDelta)
-            {
-                op = op
-                .WithControlsExcluding("<Pointer>/delta")
-                .WithControlsExcluding("<Pointer>/position")
-                .WithControlsExcluding("<Mouse>/delta")
-                .WithControlsExcluding("<Mouse>/position");
+                ApplyKeyListeningResult(result);
+                RecloneTestAction();
+                RefreshComponents();
             }
 
-            op = op
-            .OnApplyBinding((operation, newPath) =>
-            {
-                InputDevice device = operation.selectedControl.device;
-                string[] newPathParts = newPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                if (device is Joystick && newPathParts?[1].Equals("hat", StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    newPathParts[0] = "<Joystick>";
-                    newPath = string.Join('/', newPathParts);
-                }
-                bool isKeyboardAndMouse = device is Keyboard || device is Mouse;
-                string mainGroup = isKeyboardAndMouse ? _inputToolkit.BindingGroupKeyboardAndMouse : _inputToolkit.BindingGroupGamepad;
-                bool isKnownGamepad = IsKnownStandardGamepadPath(newPath);
-                bool isKnownDevice = isKeyboardAndMouse || isKnownGamepad;
-                string unknownDeviceGroup = isKnownDevice ? null : DeviceToGroupName(device);
-                string unknownDeviceShortName = isKnownDevice ? null : DeviceShortName(device);
-
-                InputAction action = _actionReference.Action;
-                bool isAlreadyBound = action.controls.Any(control => InputControlPath.Matches(newPath, control));
-                string groups = isKnownDevice
-                    ? mainGroup
-                    : $"{mainGroup};{unknownDeviceGroup};{DEVICE_SHORTNAME_PREFIX}{unknownDeviceShortName}";
-                InputBinding newBinding = new()
-                {
-                    path = newPath,
-                    groups = groups
-                };
-                ClassifiedBinding classifiedBinding = ClassifyBinding(newBinding, -1);
-                _overlay.UpdateKeyName(classifiedBinding.DisplayString);
-                if (isAlreadyBound)
-                {
-                    Debug.Log($"[Bind:{_actionReference.Action.name}] Path {newPath} is already bound, skipping adding new binding.");
-                }
-                else
-                {
-                    action.AddBinding(newBinding);
-                }
-            })
-            .OnComplete(operation =>
-            {
-                operation.Dispose();
-                if (wasEnabled) action.Enable();
-                OnRebindComplete();
-                _overlay.Hide(delay: 0.15f);
-            })
-            .OnCancel(operation =>
-            {
-                operation.Dispose();
-                if (wasEnabled) action.Enable();
-                Debug.Log($"[Bind:{_actionReference.Action.name}] Canceled");
-                _overlay.Hide();
-            })
-            .Start();
+            _overlay.Hide(delay: result.IsSuccess ? 0.15f : 0f);
         }
 
-        private void OnRebindComplete()
+        private async UniTask<KeyListeningResult> ListenToKey()
         {
-            RecloneTestAction();
-            RefreshComponents();
+            KeyListeningResult result = await _keyListener.ListenToKey();
+            result.Action = _actionReference.Action;
+            return result;
+        }
+
+        private void ApplyKeyListeningResult(KeyListeningResult result)
+        {
+            if (!result.IsSuccess) return;
+
+            RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(result);
+            InputBinding binding = rebindingMetadata.NewBinding;
+            BindingMetadata bindingData = _metadataProcessor.ProcessSingleBinding(binding);
+            _overlay.UpdateKeyName(bindingData.DisplayString);
+            if (rebindingMetadata.IsAlreadyBound)
+            {
+                InputAction action = result.Action;
+                string newPath = result.NewPath;
+                Debug.Log($"[Bind:{action.name}] Path {newPath} is already bound, skipping adding new binding.");
+                return;
+            }
+
+            ChangeAction((action) => action.AddBinding(rebindingMetadata.NewBinding));
         }
 
         private void OnAddDefaultsClicked()
@@ -397,73 +256,6 @@ namespace SensenToolkit
             });
         }
 
-        private string DeviceShortName(InputDevice device)
-        {
-            string manufacturer = (device.description.manufacturer ?? "").Trim();
-            string product = (device.description.product ?? "").Trim();
-
-            if (!String.IsNullOrEmpty(manufacturer)) manufacturer = s_blankRegex.Replace(manufacturer, "");
-            product = s_blankRegex.Replace(product, " ");
-
-            if (String.IsNullOrEmpty(manufacturer) && !String.IsNullOrEmpty(product))
-            {
-                Match firstWordMatch = s_firstWordRegex.Match(product);
-                if (firstWordMatch.Success
-                    && firstWordMatch.Length < (product.Length - 2)
-                    && firstWordMatch.Length >= 2)
-                {
-                    manufacturer = firstWordMatch.Value;
-                    product = product
-                    .Replace(manufacturer, "", StringComparison.OrdinalIgnoreCase)
-                    .Trim();
-                }
-            }
-
-            product = s_blankRegex.Replace(product, "");
-            if (String.IsNullOrEmpty(product)) product = device.name ?? "Unknown";
-
-            product = product
-                .Replace("generic", "Gn", StringComparison.OrdinalIgnoreCase)
-                .Replace("usb", "U", StringComparison.OrdinalIgnoreCase)
-                .Replace("controller", "Ct", StringComparison.OrdinalIgnoreCase)
-                .Replace("gamepad", "Gd", StringComparison.OrdinalIgnoreCase)
-                .Replace("joystick", "Jy", StringComparison.OrdinalIgnoreCase)
-                .Replace("wired", "Wd", StringComparison.OrdinalIgnoreCase)
-                .Replace("wireless", "Ws", StringComparison.OrdinalIgnoreCase)
-                .Replace("android", "Ad", StringComparison.OrdinalIgnoreCase)
-                .Replace("elite", "El", StringComparison.OrdinalIgnoreCase)
-                .Replace("dualshock", "Du", StringComparison.OrdinalIgnoreCase);
-            Match versionMatch = s_versionRegex.Match(device.name);
-            string version = versionMatch.Success ? versionMatch.Value : "";
-            if (!string.IsNullOrEmpty(version))
-            {
-                product = product
-                    .Replace(version, "", StringComparison.OrdinalIgnoreCase)
-                    .Trim();
-                version = s_specialCharsRegex.Replace(version, "");
-            }
-
-            const int TARGET_LENGTH = 7;
-            const int MAX_VERSION_LENGTH = 3;
-            int manufacturerLength = Mathf.Min(3, manufacturer.Length);
-            int versionLength = Mathf.Min(MAX_VERSION_LENGTH, version.Length);
-            int productLength = Mathf.Min(TARGET_LENGTH - manufacturerLength, product.Length);
-            string shortName = String.IsNullOrEmpty(manufacturer)
-                ? ""
-                : manufacturer[..manufacturerLength].Capitalize(forceLowerEnding: true);
-            shortName += product[..productLength].Capitalize(forceLowerEnding: true);
-            shortName += version[..versionLength].ToLowerInvariant();
-            return shortName;
-        }
-
-        private string DeviceToGroupName(InputDevice device)
-        {
-            string hashInput = $"{device.name}{device.displayName}{device.description.manufacturer}{device.description.product}{device.description.serial}{device.description.interfaceName}{device.description.version}";
-            string fullHash = Hash128.Compute(hashInput).ToString();
-
-            return $"{DeviceShortName(device)}{fullHash[..8]}";
-        }
-
         private void OnActionPerformed(InputAction.CallbackContext context)
         {
             _performingAction = true;
@@ -485,18 +277,18 @@ namespace SensenToolkit
                 if (bindingIndex < 0) return;
 
                 InputBinding binding = action.bindings[bindingIndex];
-                ClassifiedBinding cb = ClassifyBinding(binding, bindingIndex);
-                if (!CanBindingBeDeleted(cb)) return;
+                BindingMetadata bindingData = _metadataProcessor.ProcessSingleBinding(binding, bindingIndex);
+                if (!CanBindingBeDeleted(bindingData)) return;
 
                 action.ChangeBinding(bindingIndex).Erase();
             });
         }
 
-        private bool CanBindingBeDeleted(ClassifiedBinding binding)
+        private bool CanBindingBeDeleted(BindingMetadata binding)
         {
             bool isDeletionBlocked = binding
                 .EnumerateAllBindings()
-                .All((cb) => cb.IsComposite || BlockedDeletionsSet.Contains(cb.Binding.effectivePath));
+                .All((bingingData) => bingingData.IsComposite || BlockedDeletionsSet.Contains(bingingData.Binding.effectivePath));
             return !isDeletionBlocked;
         }
 
@@ -556,28 +348,6 @@ namespace SensenToolkit
             _testAction = null;
         }
 
-        private bool IsKnownStandardGamepadPath(string path)
-        {
-            string newPathDevicePrefix = ExtractPathPrefix(path);
-            bool isGamepadPath = newPathDevicePrefix.Equals("<gamepad>", StringComparison.OrdinalIgnoreCase);
-            if (isGamepadPath) return true;
-
-            bool isJoystickPath = newPathDevicePrefix.Equals("<joystick>", StringComparison.OrdinalIgnoreCase);
-            // If is not joystick nor gamepad path, then it's not known gamepad
-            if (!isJoystickPath) return false;
-
-            // <Joystick>/Trigger has different trigger button on different joystick models
-            bool isStandardizedJoystickPath = !path.Contains("trigger", StringComparison.OrdinalIgnoreCase);
-            return isStandardizedJoystickPath;
-        }
-
-        private string ExtractPathPrefix(string path)
-        {
-            int slashIndex = path.IndexOf('/');
-            if (slashIndex < 0) return path;
-            return path[..slashIndex];
-        }
-
         private void ChangeAction(Action<InputAction> changeBehaviour)
         {
             InputAction action = _actionReference.Action;
@@ -601,30 +371,30 @@ namespace SensenToolkit
         }
 
         [Button]
-        private void PrintClassifiedBindingsDebugInfo()
+        private void PrintBindingsMetadataDebugInfo()
         {
             InputAction action = _actionReference.Action;
-            IEnumerable<ClassifiedBinding> classifiedBindings = CreateClassifiedBindings(action.bindings);
-            Debug.Log($"[ClassifiedBindingsDebug:{action.name}] Total Classified Bindings: {classifiedBindings.Count()}");
-            foreach (ClassifiedBinding cb in classifiedBindings)
+            IEnumerable<BindingMetadata> bindingsMetadata = _metadataProcessor.ProcessAllBindings(action.bindings);
+            Debug.Log($"[BindingsMetadata:{action.name}] Total: {bindingsMetadata.Count()}");
+            foreach (BindingMetadata b in bindingsMetadata)
             {
                 Debug.Log(string.Join(" | ", new string[]
                 {
-                    $"[{cb.Binding.effectivePath}] {cb.DisplayString}",
-                    $"{(cb.IsKeyboardAndMouse ? "keyboard&mouse" : "")}",
-                    $"{(cb.IsKnownDevice ? "knownDevice" : "")}",
-                    $"{(cb.IsComposite ? "isComposite" : "")}",
-                    $"DeviceIdGroup:{cb.DeviceIdGroup}",
-                    $"DeviceShortName: {cb.DeviceShortName}",
-                    $"IsDefaultBinding: {cb.IsDefaultBinding}",
-                    $"PathDeviceName: {cb.PathDeviceName}",
-                    $"PathSubControlName: {cb.PathSubControlName}",
-                    $"PathControlName: {cb.PathControlName}",
-                    $"OrderIndex: {cb.OrderIndex}"
+                    $"[{b.Binding.effectivePath}] {b.DisplayString}",
+                    $"{(b.IsKeyboardAndMouse ? "keyboard&mouse" : "")}",
+                    $"{(b.IsKnownDevice ? "knownDevice" : "")}",
+                    $"{(b.IsComposite ? "isComposite" : "")}",
+                    $"DeviceIdGroup:{b.DeviceIdGroup}",
+                    $"DeviceShortName: {b.DeviceShortName}",
+                    $"IsDefaultBinding: {b.IsDefaultBinding}",
+                    $"PathDeviceName: {b.PathDeviceName}",
+                    $"PathSubControlName: {b.PathSubControlName}",
+                    $"PathControlName: {b.PathControlName}",
+                    $"OrderIndex: {b.OrderIndex}"
                 }));
-                if (cb.IsComposite && cb.CompositeParts != null)
+                if (b.IsComposite && b.CompositeParts != null)
                 {
-                    foreach (ClassifiedBinding part in cb.CompositeParts)
+                    foreach (BindingMetadata part in b.CompositeParts)
                     {
                         Debug.Log(string.Join(" | ", new string[]
                         {
