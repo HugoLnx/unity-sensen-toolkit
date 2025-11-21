@@ -6,6 +6,11 @@ namespace SensenToolkit
 {
     public class KeyRebindingOverlay : MonoBehaviour
     {
+        [Header("Config")]
+        [SerializeField] private Color _actionColor = Color.purple;
+        [SerializeField] private string _actionSizeTagValue = "1.5em";
+
+        [Header("References")]
         [SerializeField, MustBeAssigned] private TMP_Text _listeningText;
         [SerializeField, MustBeAssigned] private TMP_Text _keyText;
         [SerializeField, MustBeAssigned] private AnimatedUIBlink _keyBlink;
@@ -24,10 +29,11 @@ namespace SensenToolkit
         public void ShowListening(string actionName)
         {
             _errorContent.InstantHide();
-            ResetKey();
+            ResetError();
             _content.ApplyWhenHidden(() =>
             {
-                _listeningText.text = $"Listening key/button for \"{actionName}\"";
+                _listeningText.text = $"Listening key/button for <b><size={_actionSizeTagValue}><color={_actionColor.ToHex()}>{actionName}</color></size></b>";
+                UpdateKeyName(null);
             });
             if (_panel.IsVisible) _content.HideAndReshowFading();
             else _content.InstantShow();
@@ -62,12 +68,6 @@ namespace SensenToolkit
             StopAllCoroutines();
             if (delay <= 0f) _panel.Hide();
             else StartCoroutine(Coroutinesx.WaitAndExecute(delay, () => _panel.Hide()));
-        }
-
-        private void ResetKey()
-        {
-            ResetError();
-            UpdateKeyName(null);
         }
 
         private void ResetError()

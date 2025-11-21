@@ -8,19 +8,19 @@ namespace SensenToolkit
     public static class BindingDisplayStringUtils
     {
         private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
-        public static string GenerateDisplayStringFor(BindingMetadata classifiedBinding, bool shortenForComposite = false)
+        public static string GenerateDisplayStringFor(BindingMetadata bindingMetadata, bool shortenForComposite = false)
         {
-            string buttonName = CustomButtonNameFor(classifiedBinding, shortenForComposite);
+            string buttonName = CustomButtonNameFor(bindingMetadata, shortenForComposite);
 
             if (string.IsNullOrEmpty(buttonName))
             {
-                buttonName = classifiedBinding.IsComposite
-                    ? BuildCompositeDisplayStringFor(classifiedBinding)
-                    : classifiedBinding.Binding.ToDisplayString();
+                buttonName = bindingMetadata.IsComposite
+                    ? BuildCompositeDisplayStringFor(bindingMetadata)
+                    : bindingMetadata.Binding.ToDisplayString();
             }
-            string displayString = classifiedBinding.IsKnownDevice
+            string displayString = bindingMetadata.IsKnownStandardDevice || shortenForComposite
                 ? buttonName
-                : BuildUnknownDeviceDisplayString(classifiedBinding.DeviceShortName, buttonName);
+                : BuildUnknownDeviceDisplayString(bindingMetadata.DeviceShortName, buttonName);
 
             return s_blankRegex.Replace(displayString, "");
         }
@@ -28,11 +28,11 @@ namespace SensenToolkit
         private static string CustomButtonNameFor(BindingMetadata cb, bool shortenForComposite = false)
         {
             if (cb.IsComposite) return CustomButtonNameForComposite(cb);
-            switch (cb.PathDeviceName)
+            switch (cb.Path.Device)
             {
                 case "<Mouse>":
                 case "<Pointer>":
-                    switch (cb.PathControlName)
+                    switch (cb.Path.Control)
                     {
                         case "leftButton": return "LeftClick";
                         case "rightButton": return "RightClick";
@@ -43,14 +43,14 @@ namespace SensenToolkit
                         default: return null;
                     }
                 case "<Keyboard>":
-                    if (cb.PathControlName.Count() == 1)
+                    if (cb.Path.Control.Count() == 1)
                     {
-                        string keyName = cb.PathControlName.ToUpperInvariant();
+                        string keyName = cb.Path.Control.ToUpperInvariant();
                         return shortenForComposite ? keyName : $"Key{keyName}";
                     }
                     else return null;
                 case "<Joystick>":
-                    if (cb.PathControlName.Equals("trigger", StringComparison.OrdinalIgnoreCase))
+                    if (cb.Path.MatchesControl("trigger"))
                     {
                         return "Btn0";
                     }
@@ -62,11 +62,11 @@ namespace SensenToolkit
                     return null;
                 default:
                     if (
-                        cb.PathControlName.Contains("trigger", StringComparison.OrdinalIgnoreCase)
-                        || cb.PathControlName.Contains("shoulder", StringComparison.OrdinalIgnoreCase)
+                        cb.Path.Control.Contains("trigger", StringComparison.OrdinalIgnoreCase)
+                        || cb.Path.Control.Contains("shoulder", StringComparison.OrdinalIgnoreCase)
                     )
                     {
-                        return cb.PathControlName.Capitalize();
+                        return cb.Path.Control.Capitalize();
                     }
                     string gpadStr = BuildSubControlDisplayString(cb, "dpad");
                     if (gpadStr != null) return gpadStr;
@@ -77,7 +77,7 @@ namespace SensenToolkit
                     gpadStr = BuildSubControlDisplayString(cb, "rightStick");
                     if (gpadStr != null) return gpadStr;
 
-                    if (cb.PathControlName.Contains("button", StringComparison.OrdinalIgnoreCase))
+                    if (cb.Path.Control.Contains("button", StringComparison.OrdinalIgnoreCase))
                     {
                         gpadStr = cb.Binding.ToDisplayString();
                         gpadStr = gpadStr.Replace("utton", "tn", StringComparison.OrdinalIgnoreCase);
@@ -90,13 +90,13 @@ namespace SensenToolkit
         }
         private static string BuildSubControlDisplayString(BindingMetadata cb, string subControlFilter)
         {
-            string subControlName = cb.PathSubControlName ?? cb.PathControlName;
-            if (subControlName != subControlFilter) return null;
+            string controlName = cb.Path.Control;
+            if (controlName != subControlFilter) return null;
 
-            string compositeGroupName = GetCompositeGroupNameFor(cb) ?? subControlName?.Capitalize();
-            return string.IsNullOrEmpty(cb.PathSubControlName)
+            string compositeGroupName = GetCompositeGroupNameFor(cb) ?? controlName?.Capitalize();
+            return string.IsNullOrEmpty(cb.Path.ControlPart)
                 ? compositeGroupName
-                : $"{compositeGroupName}{cb.PathControlName.Capitalize()}";
+                : $"{compositeGroupName}{cb.Path.ControlPart.Capitalize()}";
         }
 
         private static string CustomButtonNameForComposite(BindingMetadata cb)
@@ -119,13 +119,12 @@ namespace SensenToolkit
 
         private static string GetCompositeGroupNameFor(BindingMetadata part)
         {
-            bool isArrowKey = part.IsKeyboardAndMouse && part.PathControlName.EndsWith("Arrow");
+            bool isArrowKey = part.IsKeyboardAndMouse && part.Path.Control.EndsWith("Arrow");
             if (isArrowKey) return "ArrowKeys";
-            string subControlName = part.PathSubControlName ?? part.PathControlName;
 
-            if (part.PathDeviceName == "<Joystick>")
+            if (part.Path.MatchesDevice("<Joystick>"))
             {
-                switch (subControlName)
+                switch (part.Path.Control)
                 {
                     case "dpad": return "Dpad";
                     case "stick": return "AltLeftStick";
@@ -135,13 +134,13 @@ namespace SensenToolkit
                     case "z1":
                         return "AltRightStick2";
                     case "rz":
-                        bool isSecondary = part.ParentComposite.CompositeParts.Any(p => p.PathControlName == "z1");
+                        bool isSecondary = part.ParentComposite.CompositeParts.Any(p => p.Path.MatchesControl("z1"));
                         return "AltRightStick" + (isSecondary ? "2" : "");
                 }
             }
             else
             {
-                switch (subControlName)
+                switch (part.Path.Control)
                 {
                     case "dpad": return "Dpad";
                     case "leftStick": return "LeftStick";
@@ -149,32 +148,32 @@ namespace SensenToolkit
                 }
             }
 
-            return part.PathSubControlName.Capitalize();
+            return part.Path.Control.Capitalize();
     }
 
         private static string BuildUnknownDeviceDisplayString(string deviceShortName, string buttonName)
             => $"{deviceShortName}#{buttonName}";
 
-        private static string BuildCompositeDisplayStringFor(BindingMetadata classifiedBinding)
+        private static string BuildCompositeDisplayStringFor(BindingMetadata bindingMetadata)
         {
-            List<BindingMetadata> compositeParts = classifiedBinding.CompositeParts;
-            string subControl = compositeParts[0].PathSubControlName;
+            List<BindingMetadata> compositeParts = bindingMetadata.CompositeParts;
+            string controlName = compositeParts[0].Path.Control;
             foreach (BindingMetadata part in compositeParts)
             {
-                if (part.PathSubControlName != subControl)
+                if (!part.Path.MatchesControl(controlName))
                 {
-                    subControl = null;
+                    controlName = null;
                     break;
                 }
             }
 
-            if (subControl != null)
+            if (controlName != null)
             {
-                return compositeParts[0].IsKnownDevice
-                    ? subControl
+                return compositeParts[0].IsKnownStandardDevice
+                    ? controlName
                     : BuildUnknownDeviceDisplayString(
                         compositeParts[0].DeviceShortName,
-                        subControl
+                        controlName
                     );
             }
 

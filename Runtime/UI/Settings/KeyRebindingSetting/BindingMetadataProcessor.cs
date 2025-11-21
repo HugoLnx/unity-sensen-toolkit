@@ -10,11 +10,9 @@ namespace SensenToolkit
     public class BindingMetadata
     {
         public InputBinding Binding;
-        public string PathDeviceName;
-        public string PathSubControlName;
-        public string PathControlName;
+        public BindingPathComponents Path;
         public bool IsKeyboardAndMouse;
-        public bool IsKnownDevice;
+        public bool IsKnownStandardDevice;
         public string DeviceIdGroup;
         public string DeviceShortName;
         public int OrderIndex;
@@ -28,6 +26,8 @@ namespace SensenToolkit
         private string _displayStringShortenedForComposite;
         public string DisplayStringShortenedForComposite => _displayStringShortenedForComposite
             ??= BindingDisplayStringUtils.GenerateDisplayStringFor(this, shortenForComposite: true);
+
+        public string DeviceId => IsKnownStandardDevice ? Path.Device : DeviceIdGroup;
 
         public IEnumerable<BindingMetadata> EnumerateAllBindings()
         {
@@ -92,19 +92,18 @@ namespace SensenToolkit
                         DeviceShortName = compositeParts[0].DeviceShortName,
                         IsDefaultBinding = compositeParts[0].IsDefaultBinding,
                         IsKeyboardAndMouse = compositeParts[0].IsKeyboardAndMouse,
-                        IsKnownDevice = compositeParts[0].IsKnownDevice,
-                        PathDeviceName = compositeParts[0].PathDeviceName,
-                        PathControlName = null,
-                        PathSubControlName = compositeParts[0].PathSubControlName,
+                        IsKnownStandardDevice = compositeParts[0].IsKnownStandardDevice,
+                        Path = compositeParts[0].Path.Clone(),
                         OrderIndex = compositeOrderIndex
                     };
 
                     foreach (BindingMetadata part in compositeParts)
                     {
                         part.ParentComposite = compositeBinding;
-                        if (part.PathSubControlName != compositeBinding.PathSubControlName)
+                        if (!part.Path.MatchesControl(compositeBinding.Path.Control))
                         {
-                            compositeBinding.PathSubControlName = null;
+                            compositeBinding.Path.SetControlPart(null);
+                            compositeBinding.Path.SetControl(null);
                             break;
                         }
                     }
@@ -139,42 +138,32 @@ namespace SensenToolkit
             bool isDefaultBinding = DefaultBindingPaths.Contains(binding.effectivePath);
 
             string path = binding.effectivePath;
-            string[] pathParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
             return new BindingMetadata
             {
                 Binding = binding,
                 IsKeyboardAndMouse = isKeyboardAndMouse,
-                IsKnownDevice = isKnownDevice,
+                IsKnownStandardDevice = isKnownDevice,
                 DeviceIdGroup = deviceIdGroup,
                 DeviceShortName = deviceShortName,
                 OrderIndex = orderIndex,
                 IsDefaultBinding = isDefaultBinding,
-                PathDeviceName = pathParts[0],
-                PathSubControlName = pathParts.Length >= 3 ? string.Join('/', pathParts[1..^1]) : null,
-                PathControlName = pathParts.Length >= 2 ? pathParts[^1] : null
+                Path = BindingPathComponents.FromFullPath(path),
             };
         }
 
         public static bool IsKnownStandardGamepadPath(string path)
         {
-            string newPathDevicePrefix = ExtractPathDevicePrefix(path);
-            bool isGamepadPath = newPathDevicePrefix.Equals("<gamepad>", StringComparison.OrdinalIgnoreCase);
+            var pathComponents = BindingPathComponents.FromFullPath(path);
+            bool isGamepadPath = pathComponents.Device.Equals("<gamepad>", StringComparison.OrdinalIgnoreCase);
             if (isGamepadPath) return true;
 
-            bool isJoystickPath = newPathDevicePrefix.Equals("<joystick>", StringComparison.OrdinalIgnoreCase);
+            bool isJoystickPath = pathComponents.Device.Equals("<joystick>", StringComparison.OrdinalIgnoreCase);
             // If is not joystick nor gamepad path, then it's not known gamepad
             if (!isJoystickPath) return false;
 
             // <Joystick>/Trigger has different trigger button on different joystick models
-            bool isStandardizedJoystickPath = !path.Contains("trigger", StringComparison.OrdinalIgnoreCase);
+            bool isStandardizedJoystickPath = !pathComponents.Control.Equals("trigger", StringComparison.OrdinalIgnoreCase);
             return isStandardizedJoystickPath;
-        }
-
-        private static string ExtractPathDevicePrefix(string path)
-        {
-            int slashIndex = path.IndexOf('/');
-            if (slashIndex < 0) return path;
-            return path[..slashIndex];
         }
     }
 }

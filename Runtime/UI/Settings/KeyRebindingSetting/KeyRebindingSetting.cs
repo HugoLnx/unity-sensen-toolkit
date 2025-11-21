@@ -1,41 +1,56 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using EasyButtons;
 using MyBox;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Localization;
 using UnityEngine.UI;
 
 namespace SensenToolkit
 {
+    [System.Serializable]
+    public struct RebindingMacroConfig
+    {
+        public bool BlockListening;
+        public bool BlockDeletion;
+    }
+
     public class KeyRebindingSetting : MonoBehaviour
     {
-        [SerializeField]
-        private List<string> _blockedDeletions = new(){
-            "<Keyboard>/escape",
-            "<Keyboard>/upArrow",
-            "<Keyboard>/downArrow",
-            "<Keyboard>/leftArrow",
-            "<Keyboard>/rightArrow",
-            "<Mouse>/delta",
-            "<Mouse>/position",
-            "<Pointer>/delta",
-            "<Pointer>/position",
-        };
+        [Header("Styling")]
         [SerializeField] private Color _performingColor = Color.purple;
         [SerializeField] private Color _hoveredColor = Color.red;
         [SerializeField] private Color _defaultBindingColor = Color.cyan;
         [SerializeField] private Color _customBindingColor = Color.green;
+
+        [Header("Config")]
         [SerializeField] private DynamicInputActionReference _actionReference;
         [SerializeField] private bool _cancelThroughEscape = true;
-        [SerializeField] private bool _ignoreMouseDelta = true;
-        [SerializeField] private TMP_Text _keyText;
-        [SerializeField] private Button _addButton;
-        [SerializeField] private Button _addDefaultsButton;
+        [SerializeField]
+        private RebindingMacroConfig _keyboardEscapeConfig = new()
+        {
+            BlockListening = true,
+            BlockDeletion = false,
+        };
+        [SerializeField] private RebindingMacroConfig _keyboardArrowsConfig;
+        [SerializeField] private RebindingMacroConfig _gamepadDpadConfig;
+        [SerializeField] private RebindingMacroConfig _gamepadLeftStickConfig;
+
+        [Header("Localization")]
+        [SerializeField, MustBeAssigned] private LocalizedString _actionNameI18n;
+        [SerializeField, MustBeAssigned] private LocalizedString _upPartNameI18n;
+        [SerializeField, MustBeAssigned] private LocalizedString _downPartNameI18n;
+        [SerializeField, MustBeAssigned] private LocalizedString _leftPartNameI18n;
+        [SerializeField, MustBeAssigned] private LocalizedString _rightPartNameI18n;
+        [Header("References")]
+        [SerializeField, MustBeAssigned] private TMP_Text _keyText;
+        [SerializeField, MustBeAssigned] private Button _addButton;
+        [SerializeField, MustBeAssigned] private Button _addDefaultsButton;
         [SerializeField, AutoProperty(AutoPropertyMode.Children)]
         private InteractiveTextLinks _interactiveTextLinks;
         [SerializeField, AutoProperty]
@@ -51,14 +66,20 @@ namespace SensenToolkit
         private InputAction _testAction = null;
         private HashSet<string> _hoveredBindings = new();
         private InputAction _originalAction;
-        private HashSet<string> _blockedDeletionsSet;
         private BindingMetadataProcessor _metadataProcessor;
         private RebindingMetadataProcessor _rebindingProcessor;
         private KeyListener _keyListener;
 
-        private HashSet<string> BlockedDeletionsSet => _blockedDeletionsSet ??= new(_blockedDeletions);
+        private HashSet<string> _blockedDeletionsSet;
+        private HashSet<string> BlockedDeletionsSet => _blockedDeletionsSet ??= new(EnumerateBlockedDeletionsSet());
+
+        private List<string> _ignoredBindingPaths;
+        private List<string> IgnoredBindingPaths => _ignoredBindingPaths ??= new(EnumerateIgnoredBindingPaths());
 
         public bool IsVisible => _visibility.IsVisible;
+
+        private bool IsVector2ActionType => _originalAction?.type == InputActionType.Value
+            && _originalAction?.expectedControlType == "Vector2";
 
         private void Awake()
         {
@@ -71,7 +92,10 @@ namespace SensenToolkit
             _visibility.OnHidden += OnHidden;
             _metadataProcessor = new BindingMetadataProcessor(_inputToolkit, _originalAction);
             _rebindingProcessor = new RebindingMetadataProcessor(_inputToolkit, _originalAction);
-            _keyListener = new KeyListener(_cancelThroughEscape, _ignoreMouseDelta);
+            _keyListener = new KeyListener(
+                cancelThroughEscape: _cancelThroughEscape,
+                ignoreBindingPaths: IgnoredBindingPaths
+            );
         }
 
         private void Start()
@@ -188,31 +212,78 @@ namespace SensenToolkit
         private async UniTaskVoid OnAddClickedAsync()
         {
             InputAction action = _actionReference.Action;
-            Debug.Log($"[Bind:{action.name}:{action.type}:{action.expectedControlType}] Started");
-            _overlay.ShowListening(action.name);
+            // Debug.Log($"[Bind:{action.name}:{action.type}:{action.expectedControlType}] Started");
+            await StartListeningWizard(action);
+        }
 
-            KeyListeningResult result = await ListenToKey();
-
-            if (result.IsSuccess)
+        private async UniTask StartListeningWizard(InputAction action)
+        {
+            bool isSingleKey = action.type == InputActionType.Button;
+            if (isSingleKey)
             {
-                ApplyKeyListeningResult(result);
+                await StartSingleKeyListeningWizard(action);
+                return;
+            }
+
+            if (IsVector2ActionType)
+            {
+                await StartVector2ListeningWizard(action);
+                return;
+            }
+        }
+
+        private async UniTask StartSingleKeyListeningWizard(InputAction action)
+        {
+            _overlay.ShowListening(GetActionHumanName());
+
+            KeyListeningResult result = await _keyListener.ListenToKey(action: action);
+
+            if (result.HasListened)
+            {
+                ApplySingleKeyListeningResult(result);
                 RecloneTestAction();
                 RefreshComponents();
             }
 
-            _overlay.Hide(delay: result.IsSuccess ? 0.15f : 0f);
+            _overlay.Hide(delay: result.HasListened ? 0.15f : 0f);
         }
 
-        private async UniTask<KeyListeningResult> ListenToKey()
+        private async UniTask StartVector2ListeningWizard(InputAction action)
         {
-            KeyListeningResult result = await _keyListener.ListenToKey();
-            result.Action = _actionReference.Action;
-            return result;
+            Vector2ListeningWizard wizard = new(
+                action: action,
+                keyListener: _keyListener,
+                overlay: _overlay,
+                rebindingProcessor: _rebindingProcessor,
+                bindingProcessor: _metadataProcessor,
+                getActionName: GetActionHumanName,
+                getPartHumanName: GetPartHumanName
+            );
+
+            Vector2ListeningWizardResult wizardResult = await wizard.CaptureComposite();
+
+            if (!wizardResult.IsSuccess) return;
+
+            if (wizardResult.IsSingleCompositePart)
+            {
+                Vector2CompositionPartListeningResult singlePartResult = wizardResult.SingleCompositePartResult.Value;
+                KeyListeningResult listeningResult = singlePartResult.ListeningResult;
+                var path = BindingPathComponents.FromFullPath(listeningResult.NewPath);
+                path.SetControlPart(null);
+                listeningResult.NewPath = path.AsString;
+                ApplySingleKeyListeningResult(listeningResult);
+            }
+            else
+            {
+                ApplyCompositeListeningResult(wizardResult);
+            }
+            RecloneTestAction();
+            RefreshComponents();
         }
 
-        private void ApplyKeyListeningResult(KeyListeningResult result)
+        private void ApplySingleKeyListeningResult(KeyListeningResult result)
         {
-            if (!result.IsSuccess) return;
+            if (!result.HasListened) return;
 
             RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(result);
             InputBinding binding = rebindingMetadata.NewBinding;
@@ -222,11 +293,42 @@ namespace SensenToolkit
             {
                 InputAction action = result.Action;
                 string newPath = result.NewPath;
-                Debug.Log($"[Bind:{action.name}] Path {newPath} is already bound, skipping adding new binding.");
+                // Debug.Log($"[Bind:{action.name}] Path {newPath} is already bound, skipping adding new binding.");
                 return;
             }
 
-            ChangeAction((action) => action.AddBinding(rebindingMetadata.NewBinding));
+            ChangeAction((action) =>
+            {
+                InputBinding b = rebindingMetadata.NewBinding;
+                action.AddBinding(b.path).WithGroups(b.groups);
+            });
+        }
+
+        private void ApplyCompositeListeningResult(Vector2ListeningWizardResult wizardResult)
+        {
+            List<InputBinding> partBindings = new();
+
+            foreach (Vector2CompositionPartListeningResult partResult in wizardResult.AllResults)
+            {
+                KeyListeningResult listeningResult = partResult.ListeningResult;
+                RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(listeningResult);
+                InputBinding binding = rebindingMetadata.NewBinding;
+                binding.name = partResult.PartName;
+                partBindings.Add(binding);
+            }
+
+            ChangeAction((action) =>
+            {
+                InputActionSetupExtensions.CompositeSyntax compositeBuilder = action.AddCompositeBinding("2DVector");
+                foreach (InputBinding partBinding in partBindings)
+                {
+                    compositeBuilder.With(
+                        name: partBinding.name,
+                        binding: partBinding.path,
+                        groups: partBinding.groups
+                    );
+                }
+            });
         }
 
         private void OnAddDefaultsClicked()
@@ -271,15 +373,18 @@ namespace SensenToolkit
         private void OnLinkClicked(ShallowLinkInfo info)
         {
             var bindingId = Guid.Parse(info.Id);
-            ChangeAction((action) =>
+            InputAction action = _actionReference.Action;
+
+            int bindingIndex = action.bindings.IndexOf(b => b.id == bindingId);
+            if (bindingIndex < 0) return;
+
+            InputBinding binding = action.bindings[bindingIndex];
+            IEnumerable<BindingMetadata> bindingsMetadata = _metadataProcessor.ProcessAllBindings(action.bindings);
+            BindingMetadata bindingData = bindingsMetadata.FirstOrDefault(b => b.Binding.id == bindingId);
+            if (!CanBindingBeDeleted(bindingData)) return;
+
+            ChangeAction((_) =>
             {
-                int bindingIndex = action.bindings.IndexOf(b => b.id == bindingId);
-                if (bindingIndex < 0) return;
-
-                InputBinding binding = action.bindings[bindingIndex];
-                BindingMetadata bindingData = _metadataProcessor.ProcessSingleBinding(binding, bindingIndex);
-                if (!CanBindingBeDeleted(bindingData)) return;
-
                 action.ChangeBinding(bindingIndex).Erase();
             });
         }
@@ -359,6 +464,88 @@ namespace SensenToolkit
             RefreshIfVisible();
         }
 
+        private IEnumerable<string> EnumerateBlockedDeletionsSet()
+        {
+            if (_keyboardEscapeConfig.BlockDeletion)
+            {
+                yield return RebindingMetadataProcessor.ESCAPE_KEY_PATH;
+            }
+
+            if (_keyboardArrowsConfig.BlockDeletion)
+            {
+                foreach (string path in RebindingMetadataProcessor.KeyboardArrowPaths)
+                {
+                    yield return path;
+                }
+            }
+
+            if (_gamepadDpadConfig.BlockDeletion)
+            {
+                foreach (string path in RebindingMetadataProcessor.GamepadDpadPaths)
+                {
+                    yield return path;
+                }
+            }
+
+            if (_gamepadLeftStickConfig.BlockDeletion)
+            {
+                foreach (string path in RebindingMetadataProcessor.GamepadLeftStickPaths)
+                {
+                    yield return path;
+                }
+            }
+        }
+
+        private IEnumerable<string> EnumerateIgnoredBindingPaths()
+        {
+            if (_cancelThroughEscape || _keyboardEscapeConfig.BlockListening)
+            {
+                yield return RebindingMetadataProcessor.ESCAPE_KEY_PATH;
+            }
+
+            foreach (string path in RebindingMetadataProcessor.MousePositionPaths)
+            {
+                yield return path;
+            }
+
+            if (_keyboardArrowsConfig.BlockListening)
+            {
+                foreach (string path in RebindingMetadataProcessor.KeyboardArrowPaths)
+                {
+                    yield return path;
+                }
+            }
+
+            if (!_gamepadDpadConfig.BlockListening)
+            {
+                foreach (string path in RebindingMetadataProcessor.GamepadDpadPaths)
+                {
+                    yield return path;
+                }
+            }
+
+            if (_gamepadLeftStickConfig.BlockListening)
+            {
+                foreach (string path in RebindingMetadataProcessor.GamepadLeftStickPaths)
+                {
+                    yield return path;
+                }
+            }
+        }
+
+        private string GetActionHumanName() => _actionNameI18n.GetLocalizedString();
+        private string GetPartHumanName(string partName)
+        {
+            return partName.ToLowerInvariant() switch
+            {
+                "up" => _upPartNameI18n.GetLocalizedString(),
+                "down" => _downPartNameI18n.GetLocalizedString(),
+                "left" => _leftPartNameI18n.GetLocalizedString(),
+                "right" => _rightPartNameI18n.GetLocalizedString(),
+                _ => partName,
+            };
+        }
+
         [Button]
         private void PrintRawBindingsDebugInfo()
         {
@@ -382,14 +569,14 @@ namespace SensenToolkit
                 {
                     $"[{b.Binding.effectivePath}] {b.DisplayString}",
                     $"{(b.IsKeyboardAndMouse ? "keyboard&mouse" : "")}",
-                    $"{(b.IsKnownDevice ? "knownDevice" : "")}",
+                    $"{(b.IsKnownStandardDevice ? "knownDevice" : "")}",
                     $"{(b.IsComposite ? "isComposite" : "")}",
                     $"DeviceIdGroup:{b.DeviceIdGroup}",
                     $"DeviceShortName: {b.DeviceShortName}",
                     $"IsDefaultBinding: {b.IsDefaultBinding}",
-                    $"PathDeviceName: {b.PathDeviceName}",
-                    $"PathSubControlName: {b.PathSubControlName}",
-                    $"PathControlName: {b.PathControlName}",
+                    $"PathDevice: {b.Path.Device}",
+                    $"PathControl: {b.Path.Control}",
+                    $"PathControlPart: {b.Path.ControlPart}",
                     $"OrderIndex: {b.OrderIndex}"
                 }));
                 if (b.IsComposite && b.CompositeParts != null)
@@ -400,13 +587,13 @@ namespace SensenToolkit
                         {
                             $"\t[Part:{part.Binding.effectivePath}] {part.DisplayString}",
                             $"{(part.IsKeyboardAndMouse ? "keyboard&mouse" : "")}",
-                            $"{(part.IsKnownDevice ? "knownDevice" : "")}",
+                            $"{(part.IsKnownStandardDevice ? "knownDevice" : "")}",
                             $"DeviceIdGroup:{part.DeviceIdGroup}",
                             $"DeviceShortName: {part.DeviceShortName}",
                             $"IsDefaultBinding: {part.IsDefaultBinding}",
-                            $"PathDeviceName: {part.PathDeviceName}",
-                            $"PathSubControlName: {part.PathSubControlName}",
-                            $"PathControlName: {part.PathControlName}",
+                            $"PathDevice: {part.Path.Device}",
+                            $"PathControl: {part.Path.Control}",
+                            $"PathControlPart: {part.Path.ControlPart}",
                             $"OrderIndex: {part.OrderIndex}"
                         }));
                     }

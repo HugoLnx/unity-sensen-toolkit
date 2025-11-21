@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using MyBox;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -18,7 +19,46 @@ namespace SensenToolkit
 
     public class RebindingMetadataProcessor
     {
+        public const string ESCAPE_KEY_PATH = "<Keyboard>/escape";
+        public static readonly string[] MousePositionPaths = new[]
+        {
+            "<Mouse>/position",
+            "<Mouse>/delta",
+            "<Pointer>/position",
+            "<Pointer>/delta",
+        };
+
+        public static readonly string[] KeyboardArrowPaths = new[]
+        {
+            "<Keyboard>/upArrow",
+            "<Keyboard>/downArrow",
+            "<Keyboard>/leftArrow",
+            "<Keyboard>/rightArrow",
+        };
+
+        public static readonly string[] GamepadDpadPaths = new[]
+        {
+            "<Gamepad>/dpad",
+            "<Gamepad>/dpad/up",
+            "<Gamepad>/dpad/down",
+            "<Gamepad>/dpad/left",
+            "<Gamepad>/dpad/right",
+        };
+
+        public static readonly string[] GamepadLeftStickPaths = new[]
+        {
+            "<Gamepad>/leftStick",
+            "<Gamepad>/leftStick/up",
+            "<Gamepad>/leftStick/down",
+            "<Gamepad>/leftStick/left",
+            "<Gamepad>/leftStick/right",
+        };
+
         public const string DEVICE_SHORTNAME_PREFIX = "[DEVICE]";
+        public static readonly List<string> Vector2CompositeOrder = new()
+        {
+            "Up", "Left", "Down", "Right",
+        };
         private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
         private static readonly Regex s_versionRegex = new(@"\d[\.,\d_-]+", RegexOptions.Compiled);
         private static readonly Regex s_specialCharsRegex = new(@"[^\d\w]", RegexOptions.Compiled);
@@ -38,11 +78,11 @@ namespace SensenToolkit
             string newPath = result.NewPath;
             InputDevice device = result.Device;
 
-            string[] newPathParts = newPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (device is Joystick && newPathParts?[1].Equals("hat", StringComparison.OrdinalIgnoreCase) == true)
+            var newPathParts = BindingPathComponents.FromFullPath(newPath);
+            if (device is Joystick && newPathParts.MatchesControl("hat"))
             {
-                newPathParts[0] = "<Joystick>";
-                newPath = string.Join('/', newPathParts);
+                newPathParts.SetDevice("<Joystick>");
+                newPath = newPathParts.AsString;
             }
             bool isKeyboardAndMouse = device is Keyboard || device is Mouse;
             string mainGroup = isKeyboardAndMouse

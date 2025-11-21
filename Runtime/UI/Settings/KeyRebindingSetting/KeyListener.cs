@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine.InputSystem;
 using static UnityEngine.InputSystem.InputActionRebindingExtensions;
@@ -6,7 +8,7 @@ namespace SensenToolkit
 {
     public enum KeyListeningResultType
     {
-        Success,
+        Listened,
         Canceled,
     }
 
@@ -17,25 +19,28 @@ namespace SensenToolkit
         public string NewPath;
         public InputAction Action;
 
-        public bool IsSuccess => Type == KeyListeningResultType.Success;
-        public bool IsCanceled => Type == KeyListeningResultType.Canceled;
+        public bool HasListened => Type == KeyListeningResultType.Listened;
+        public bool HasCanceled => Type == KeyListeningResultType.Canceled;
     }
 
     public class KeyListener
     {
         private InputAction _blankAction;
         private bool _cancelThroughEscape;
-        private bool _ignoreMouseDelta;
+        private IEnumerable<string> _ignoreBindingPaths;
 
-        public KeyListener(bool cancelThroughEscape = true, bool ignoreMouseDelta = true)
+        public KeyListener(
+            bool cancelThroughEscape = true,
+            IEnumerable<string> ignoreBindingPaths = null
+        )
         {
             _blankAction = new InputAction(type: InputActionType.Button);
             _blankAction.Disable();
             _cancelThroughEscape = cancelThroughEscape;
-            _ignoreMouseDelta = ignoreMouseDelta;
+            _ignoreBindingPaths = ignoreBindingPaths ?? new string[0];
         }
 
-        public async UniTask<KeyListeningResult> ListenToKey(float timeout = 10f)
+        public async UniTask<KeyListeningResult> ListenToKey(InputAction action, float timeout = 10f)
         {
             RebindingOperation op = _blankAction
             .PerformInteractiveRebinding()
@@ -44,19 +49,19 @@ namespace SensenToolkit
             if (_cancelThroughEscape)
             {
                 op = op
-                .WithCancelingThrough("<Keyboard>/escape")
-                .WithControlsExcluding("<Keyboard>/escape");
-            }
-            if (_ignoreMouseDelta)
-            {
-                op = op
-                .WithControlsExcluding("<Pointer>/delta")
-                .WithControlsExcluding("<Pointer>/position")
-                .WithControlsExcluding("<Mouse>/delta")
-                .WithControlsExcluding("<Mouse>/position");
+                .WithCancelingThrough(RebindingMetadataProcessor.ESCAPE_KEY_PATH)
+                .WithControlsExcluding(RebindingMetadataProcessor.ESCAPE_KEY_PATH);
             }
 
-            KeyListeningResult result = new();
+            foreach (string bindingPath in _ignoreBindingPaths)
+            {
+                op = op.WithControlsExcluding(bindingPath);
+            }
+
+            KeyListeningResult result = new()
+            {
+                Action = action,
+            };
             KeyListeningResultType? resultType = null;
 
             op = op
@@ -67,7 +72,7 @@ namespace SensenToolkit
             })
             .OnComplete(operation =>
             {
-                resultType = KeyListeningResultType.Success;
+                resultType = KeyListeningResultType.Listened;
             })
             .OnCancel(operation =>
             {
