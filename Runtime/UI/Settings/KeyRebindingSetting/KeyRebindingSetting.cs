@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
 using EasyButtons;
 using MyBox;
@@ -18,6 +19,26 @@ namespace SensenToolkit
     {
         public bool BlockListening;
         public bool BlockDeletion;
+
+    }
+
+    [System.Serializable]
+    public class BindingReplicationInstruction
+    {
+        public DynamicInputActionReference TargetActionReference;
+        public List<string> BlacklistRegex = new();
+        public List<string> WhitelistRegex = new();
+
+        public bool IsReplicationAllowed(string bindingPath)
+        {
+            bool isBlacklisted = BlacklistRegex.Any((pattern) => Regex.IsMatch(bindingPath, pattern));
+            if (isBlacklisted) return false;
+
+            if (WhitelistRegex.Count == 0) return true;
+
+            bool isWhitelisted = WhitelistRegex.Any((pattern) => Regex.IsMatch(bindingPath, pattern));
+            return isWhitelisted;
+        }
     }
 
     public class KeyRebindingSetting : MonoBehaviour
@@ -30,6 +51,7 @@ namespace SensenToolkit
 
         [Header("Config")]
         [SerializeField] private DynamicInputActionReference _actionReference;
+        [SerializeField] private List<BindingReplicationInstruction> _replicationInstructions = new();
         [SerializeField] private bool _cancelThroughEscape = true;
         [SerializeField]
         private RebindingMacroConfig _keyboardEscapeConfig = new()
@@ -142,6 +164,10 @@ namespace SensenToolkit
         public void SetActionCollection(IInputActionCollection2 actions)
         {
             _actionReference.SetActionCollection(actions);
+            foreach (BindingReplicationInstruction instruction in _replicationInstructions)
+            {
+                instruction.TargetActionReference.SetActionCollection(actions);
+            }
             RecloneTestAction();
         }
 
@@ -460,8 +486,45 @@ namespace SensenToolkit
             action.Disable();
             changeBehaviour.Invoke(action);
             if (wasEnabled) action.Enable();
+            ReplicateBindings();
             RecloneTestAction();
             RefreshIfVisible();
+        }
+
+        private void ReplicateBindings()
+        {
+            foreach (BindingReplicationInstruction instruction in _replicationInstructions)
+            {
+                InputAction sourceAction = _actionReference.Action;
+                InputAction targetAction = instruction.TargetActionReference.Action;
+
+                bool wasEnabled = targetAction.enabled;
+                targetAction.Disable();
+                var safeLoop = new SafeLoop(250);
+                while (targetAction.bindings.Count > 0)
+                {
+                    targetAction.ChangeBinding(0).Erase();
+                    safeLoop.Count();
+                }
+
+                foreach (InputBinding binding in sourceAction.bindings)
+                {
+                    if (!instruction.IsReplicationAllowed(binding.effectivePath)) continue;
+
+                    InputBinding bindingClone = new()
+                    {
+                        name = binding.name,
+                        id = binding.id,
+                        path = binding.effectivePath,
+                        interactions = binding.interactions,
+                        processors = binding.processors,
+                        groups = binding.groups,
+                        action = binding.action,
+                    };
+                    targetAction.AddBinding(bindingClone);
+                }
+                if (wasEnabled) targetAction.Enable();
+            }
         }
 
         private IEnumerable<string> EnumerateBlockedDeletionsSet()
