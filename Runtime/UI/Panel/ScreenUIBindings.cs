@@ -10,7 +10,7 @@ namespace SensenToolkit
     {
 
         [Tooltip("Freeze gameplay while this screen is shown.")]
-        [SerializeField, FormerlySerializedAs("_freeze")]
+        [SerializeField]
         private bool _holdFocus = true;
 
         [Tooltip("Pause is blocked while this screen is shown.")]
