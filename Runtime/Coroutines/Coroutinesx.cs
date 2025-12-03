@@ -19,9 +19,13 @@ namespace SensenToolkit
             coroutine = null;
         }
 
-        public static IEnumerator WaitAndExecute(float delay, Action act)
+        public static IEnumerator WaitAndExecute(float delay, Action act, bool unscaled = false)
         {
-            if (delay > 0f) yield return new WaitForSeconds(delay);
+            if (delay > 0f)
+            {
+                if (unscaled) yield return new WaitForSecondsRealtime(delay);
+                else yield return new WaitForSeconds(delay);
+            }
             act?.Invoke();
         }
     }
