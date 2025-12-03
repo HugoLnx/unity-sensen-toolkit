@@ -70,7 +70,6 @@ namespace SensenToolkit
             if (_originalActionInitialized) return;
             _originalAction = _actionRef.action.Clone();
             _originalActionInitialized = true;
-            Debug.Log($"EnsureOriginalAction {_originalAction.bindings.Count} bindings");
         }
     }
 }
