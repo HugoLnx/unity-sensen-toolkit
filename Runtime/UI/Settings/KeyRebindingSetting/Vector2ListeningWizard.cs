@@ -122,9 +122,9 @@ namespace SensenToolkit
                 tryResult = await TryListenKeyForPart();
                 if (!tryResult.Value.IsSuccess) continue;
 
-                await UniTask.Delay(50);
+                await UniTask.Delay(50, ignoreTimeScale: true);
                 string newPath = tryResult.Value.ListeningResult.NewPath;
-                float timeDiff = Time.time - lastPathTimestamp;
+                float timeDiff = Time.unscaledTime - lastPathTimestamp;
                 bool isSameAsLastKeyTooSoon = newPath == lastPath && timeDiff < 1.5f;
                 if (isSameAsLastKeyTooSoon)
                 {
@@ -133,7 +133,7 @@ namespace SensenToolkit
                 }
 
                 lastPath = newPath;
-                lastPathTimestamp = Time.time;
+                lastPathTimestamp = Time.unscaledTime;
             }
 
             if (tryResult?.IsSuccess != true)

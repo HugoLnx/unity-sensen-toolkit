@@ -1,3 +1,4 @@
+using System;
 using MyBox;
 using TMPro;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace SensenToolkit
         [SerializeField, MustBeAssigned] private FadableContent _content;
         [SerializeField, MustBeAssigned] private FadableContent _errorContent;
         [SerializeField, AutoProperty] private PanelFadable _panel;
+        private Coroutine _hideCoroutine;
 
         private void Start()
         {
@@ -65,9 +67,23 @@ namespace SensenToolkit
 
         public void Hide(float delay = 0f)
         {
-            StopAllCoroutines();
-            if (delay <= 0f) _panel.Hide();
-            else StartCoroutine(Coroutinesx.WaitAndExecute(delay, () => _panel.Hide()));
+            this.TryStopCoroutine(ref _hideCoroutine);
+            if (delay <= 0f) RawHideNow();
+            else
+            {
+                _hideCoroutine = StartCoroutine(
+                    Coroutinesx.WaitAndExecute(delay, OnDelayedHide, unscaled: true));
+            }
+        }
+
+        private void OnDelayedHide()
+        {
+            RawHideNow();
+        }
+
+        private void RawHideNow()
+        {
+            _panel.Hide();
         }
 
         private void ResetError()
