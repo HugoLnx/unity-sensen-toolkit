@@ -108,7 +108,6 @@ namespace SensenToolkit
             {
                 NewBinding = newBinding,
                 IsKnownDevice = isKnownDevice,
-                // IsAlreadyBound = isAlreadyBound,
                 UnknownDeviceGroup = unknownDeviceGroup,
                 UnknownDeviceShortName = unknownDeviceShortName,
             };

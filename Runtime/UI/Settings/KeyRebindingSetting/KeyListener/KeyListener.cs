@@ -6,23 +6,6 @@ using static UnityEngine.InputSystem.InputActionRebindingExtensions;
 
 namespace SensenToolkit
 {
-    public enum KeyListeningResultType
-    {
-        Listened,
-        Canceled,
-    }
-
-    public struct KeyListeningResult
-    {
-        public InputDevice Device;
-        public KeyListeningResultType Type;
-        public string NewPath;
-        public InputAction Action;
-
-        public bool HasListened => Type == KeyListeningResultType.Listened;
-        public bool HasCanceled => Type == KeyListeningResultType.Canceled;
-    }
-
     public class KeyListener
     {
         private InputAction _blankAction;

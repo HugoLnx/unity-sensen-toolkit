@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
-using UnityEngine.Localization.SmartFormat.Utilities;
 
 namespace SensenToolkit.InputRebindingSerialization
 {
@@ -63,80 +61,6 @@ namespace SensenToolkit.InputRebindingSerialization
             };
 
             return JsonUtility.ToJson(jsonData, pretty);
-
-            // List<InputActionJson> allActionsChanges = new();
-            // foreach (InputAction action in _actions)
-            // {
-            //     string actionKey = InputUtils.GetActionKey(action);
-            //     InputAction originalAction = _originalActions.FindAction(actionKey);
-            //     if (originalAction == null)
-            //     {
-            //         Debug.LogWarning($"Original action not found '{action.name}'");
-            //         continue;
-            //     }
-
-            //     IReadOnlyList<BindingBacktrack> currentBindings = _currentData.BindingBacktracksByActionName[actionKey];
-            //     IReadOnlyList<BindingBacktrack> originalBindings = _originalData.BindingBacktracksByActionName[actionKey];
-            //     HashSet<string> originalBindingsKeySet = _originalData.BindingKeysByActionName[actionKey];
-            //     HashSet<string> currentBindingsKeySet = _currentData.BindingKeysByActionName[actionKey];
-
-            //     if (originalBindingsKeySet.SetEquals(currentBindingsKeySet)) continue;
-
-            //     var actionJson = InputActionJson.From(action);
-
-            //     for (int i = 0; i < originalBindings.Count; i++)
-            //     {
-            //         BindingBacktrack backtrack = originalBindings[i];
-            //         InputBinding b = backtrack.Binding;
-            //         string bindingKey = InputUtils.GetBindingKey(backtrack);
-
-            //         bool shouldSkip = b.isComposite || currentBindingsKeySet.Contains(bindingKey);
-            //         if (shouldSkip) continue;
-
-            //         actionJson.BindingChanges.Add(new InputBindingJson
-            //         {
-            //             IsDeletion = true,
-            //             Binding = b,
-            //             BindingKey = bindingKey,
-            //         });
-            //     }
-
-            //     int firstCustomBindingIndex = int.MaxValue - 100;
-            //     for (int i = 0; i < currentBindings.Count; i++)
-            //     {
-            //         BindingBacktrack backtrack = currentBindings[i];
-            //         InputBinding b = backtrack.Binding;
-            //         if (b.isComposite) continue;
-
-            //         string currentBindingKey = InputUtils.GetBindingKey(backtrack);
-            //         bool isOriginalBinding = originalBindingsKeySet.Contains(currentBindingKey);
-            //         if (isOriginalBinding) continue;
-
-            //         firstCustomBindingIndex = b.isPartOfComposite ? i - 1 : i;
-            //         break;
-            //     }
-
-            //     for (int i = firstCustomBindingIndex; i < currentBindings.Count; i++)
-            //     {
-            //         BindingBacktrack backtrack = currentBindings[i];
-            //         InputBinding binding = backtrack.Binding;
-            //         string bindingKey = InputUtils.GetBindingKey(backtrack);
-
-            //         actionJson.BindingChanges.Add(new InputBindingJson
-            //         {
-            //             IsDeletion = false,
-            //             Binding = binding,
-            //             BindingKey = bindingKey,
-            //         });
-            //     }
-
-            //     allActionsChanges.Add(actionJson);
-            // }
-
-            // return JsonUtility.ToJson(new InputRebindingJsonData
-            // {
-            //     ActionsChanges = allActionsChanges,
-            // }, pretty);
         }
 
         public bool LoadSerializedJson(string serializedJson)
@@ -171,8 +95,6 @@ namespace SensenToolkit.InputRebindingSerialization
             HashSet<string> deletedBindingKeys = data.DeletedBindingsByActionKey.GetValueOrDefault(actionKey, null);
             IReadOnlyList<BindingPlus> originalBindings = _originalData.BindingsByActionKey.GetValueOrDefault(actionKey, null);
 
-            // InputDebug.DebugPrintBindingKeys($"[DeletedBindingKeys:{actionKey}]", deletedBindingKeys);
-
             List<BindingPlus> originalBindingsToReAdd = new();
             if (originalBindings == null) return originalBindingsToReAdd;
 
@@ -193,8 +115,6 @@ namespace SensenToolkit.InputRebindingSerialization
                 {
                     isDeleted = deletedBindingKeys?.Contains(binding.Key) == true;
                 }
-
-                // Debug.Log($"[DeletedCheck:{actionKey}/{rawBinding.name}:{isDeleted}] {binding.Key}");
 
                 if (isDeleted) continue;
 

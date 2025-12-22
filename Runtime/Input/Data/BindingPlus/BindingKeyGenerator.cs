@@ -10,7 +10,6 @@ namespace SensenToolkit
     // when loading the serialized rebinding data
     internal static class BindingKeyGenerator
     {
-
         public static string GenerateCompositeBindingKey(
             InputAction action,
             InputBinding compositeBinding,

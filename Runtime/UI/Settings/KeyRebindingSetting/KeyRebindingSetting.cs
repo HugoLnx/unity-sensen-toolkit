@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
 using EasyButtons;
 using MyBox;
@@ -13,33 +12,6 @@ using UnityEngine.UI;
 
 namespace SensenToolkit
 {
-    [System.Serializable]
-    public struct RebindingMacroConfig
-    {
-        public bool BlockListening;
-        public bool BlockDeletion;
-
-    }
-
-    [System.Serializable]
-    public class BindingReplicationInstruction
-    {
-        public DynamicInputActionReference TargetActionReference;
-        public List<string> BlacklistRegex = new();
-        public List<string> WhitelistRegex = new();
-
-        public bool IsReplicationAllowed(string bindingPath)
-        {
-            bool isBlacklisted = BlacklistRegex.Any((pattern) => Regex.IsMatch(bindingPath, pattern));
-            if (isBlacklisted) return false;
-
-            if (WhitelistRegex.Count == 0) return true;
-
-            bool isWhitelisted = WhitelistRegex.Any((pattern) => Regex.IsMatch(bindingPath, pattern));
-            return isWhitelisted;
-        }
-    }
-
     public class KeyRebindingSetting : MonoBehaviour
     {
         [Header("Styling")]
@@ -298,22 +270,6 @@ namespace SensenToolkit
             }
 
             TryToAppendBinding(wizardResult.NewBinding);
-
-            // if (wizardResult.IsSingleBinding)
-            // {
-            //     Vector2CompositionPartListeningResult singlePartResult = wizardResult.SingleCompositePartResult.Value;
-            //     KeyListeningResult listeningResult = singlePartResult.ListeningResult;
-            //     var path = BindingPathComponents.FromFullPath(listeningResult.NewPath);
-            //     path.SetControlPart(null);
-            //     listeningResult.NewPath = path.AsString;
-            //     ApplySingleKeyListeningResult(listeningResult);
-            // }
-            // else
-            // {
-            //     ApplyCompositeListeningResult(wizardResult);
-            // }
-            // RecloneTestAction();
-            // RefreshComponents();
         }
 
         private void TryToAppendBinding(BindingPlus newBinding)
@@ -331,42 +287,7 @@ namespace SensenToolkit
             bindings = bindings.WithAppended(newBinding);
 
             ChangeAction(bindings.ReplaceActionBindings);
-
-            // RecloneTestAction();
-            // RefreshComponents();
         }
-
-        // private void ApplyCompositeListeningResult(Vector2ListeningWizardResult wizardResult)
-        // {
-        //     // TODO: Wizard should return a BindingPlus
-        //     // Check if is already bound
-        //     List<InputBinding> rawNewBindings = new()
-        //     {
-        //         new InputBinding
-        //         {
-        //             path = "2DVector",
-        //             isComposite = true,
-        //         }
-        //     };
-
-        //     foreach (Vector2CompositionPartListeningResult partResult in wizardResult.RawResults)
-        //     {
-        //         KeyListeningResult listeningResult = partResult.ListeningResult;
-        //         RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(listeningResult);
-        //         InputBinding binding = rebindingMetadata.NewBinding;
-        //         binding.name = partResult.PartName;
-        //         binding.isPartOfComposite = true;
-        //         rawNewBindings.Add(binding);
-        //     }
-
-        //     ChangeAction((action) =>
-        //     {
-        //         for (int i = 0; i < rawNewBindings.Count; i++)
-        //         {
-        //             InputUtils.AddNextBindingsToAction(action, rawNewBindings, ref i);
-        //         }
-        //     });
-        // }
 
         private void OnAddDefaultsClicked()
         {
@@ -377,41 +298,6 @@ namespace SensenToolkit
                 .WithPrependedDefaultBindings(_originalBindings);
 
             ChangeAction(newBindings.ReplaceActionBindings);
-
-            // ChangeAction((action) =>
-            // {
-            //     var safeLoop = new SafeLoop(250);
-            //     while (action.bindings.Count > 0)
-            //     {
-            //         action.ChangeBinding(0).Erase();
-            //         safeLoop.Count();
-            //     }
-
-            //     for (int i = 0; i < _originalBindings.Count; i++)
-            //     {
-            //         InputUtils.AddNextBindingsToAction(action, _originalBindings, ref i);
-            //     }
-
-            //     List<InputBinding> bindingsToAdd = new();
-            //     foreach (BindingPlus binding in newBindings)
-            //     {
-            //         bool isAnOriginalBinding = _originalBindingKeys.Contains(binding.Key);
-            //         if (isAnOriginalBinding) continue;
-            //         bindingsToAdd.Add(binding.Binding);
-            //         if (binding.Binding.isComposite)
-            //         {
-            //             foreach (BindingPlus part in binding.CompositeChildren)
-            //             {
-            //                 bindingsToAdd.Add(part.Binding);
-            //             }
-            //         }
-            //     }
-
-            //     for (int i = 0; i < bindingsToAdd.Count; i++)
-            //     {
-            //         InputUtils.AddNextBindingsToAction(action, bindingsToAdd, ref i);
-            //     }
-            // });
         }
 
         private void OnActionPerformed(InputAction.CallbackContext context)

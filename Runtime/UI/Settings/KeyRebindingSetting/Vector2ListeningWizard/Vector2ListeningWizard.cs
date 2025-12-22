@@ -2,32 +2,10 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
-using UnityEngine.iOS;
 using System;
 
 namespace SensenToolkit
 {
-    public enum Vector2WizardErrorCode
-    {
-        None,
-        Canceled,
-        DifferentDevice,
-        DuplicateBinding,
-    }
-    public struct Vector2CompositionPartListeningResult
-    {
-        public string PartName;
-        public KeyListeningResult ListeningResult;
-    }
-    public struct Vector2ListeningWizardResult
-    {
-        public BindingPlus NewBinding;
-        public List<Vector2CompositionPartListeningResult> RawResults;
-        public bool IsSingleBinding;
-        public Vector2CompositionPartListeningResult? SingleCompositePartResult => IsSingleBinding ? RawResults[^1] : null;
-        public bool IsSuccess;
-    }
-
     public class Vector2ListeningWizard
     {
         private struct TryCompositePartListeningResult

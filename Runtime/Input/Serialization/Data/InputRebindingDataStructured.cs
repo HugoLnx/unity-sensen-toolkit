@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
@@ -110,41 +108,5 @@ namespace SensenToolkit.InputRebindingSerialization
 
             AdditionBindingsByActionKey = additionBindingsByActionKey;
         }
-
-        /*
-            Dictionary<string, HashSet<string>> deletionsByActionKey = new();
-            Dictionary<string, List<BindingBacktrack>> addedBindingsByActionKey = new();
-
-            foreach (InputActionJson actionChanges in jsonData.ActionsChanges)
-            {
-                string actionKey = InputUtils.GetActionKey(actionChanges.ActionBacktrack);
-
-                HashSet<string> deletions = deletionsByActionKey.GetValueOrDefault(actionKey, new());
-                List<BindingBacktrack> additions = addedBindingsByActionKey.GetValueOrDefault(actionKey, new());
-
-                foreach (InputBindingJson bindingChange in actionChanges.BindingChanges)
-                {
-                    if (bindingChange.IsDeletion)
-                    {
-                        string bindingKey = InputUtils.GetBindingKey(actionChanges.ActionBacktrack, bindingChange.Binding);
-                        deletions.Add(bindingKey);
-                    }
-                    else
-                    {
-                        additions.Add(BindingBacktrack.From(actionChanges.ActionBacktrack, bindingChange.Binding));
-                    }
-                }
-
-                if (deletions.Count > 0)
-                {
-                    deletionsByActionKey[actionKey] = deletions;
-                }
-
-                if (additions.Count > 0)
-                {
-                    addedBindingsByActionKey[actionKey] = additions;
-                }
-            }
-        */
     }
 }
