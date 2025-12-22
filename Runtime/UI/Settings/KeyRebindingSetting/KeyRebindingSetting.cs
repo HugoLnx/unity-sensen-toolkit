@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
@@ -88,7 +87,8 @@ namespace SensenToolkit
         private InputAction _testAction = null;
         private HashSet<string> _hoveredBindings = new();
         private InputAction _originalAction;
-        private BindingMetadataProcessor _metadataProcessor;
+        private BindingPlusCollection _originalBindings;
+        private List<BindingPlus> _originalBindingsPlus;
         private RebindingMetadataProcessor _rebindingProcessor;
         private KeyListener _keyListener;
 
@@ -106,13 +106,13 @@ namespace SensenToolkit
         private void Awake()
         {
             _originalAction = _actionReference.OriginalActionClone();
+
             if (_inputToolkit != null)
             {
                 _inputToolkit.BindActionCollection(SetActionCollection);
             }
             _visibility.OnShow += OnShow;
             _visibility.OnHidden += OnHidden;
-            _metadataProcessor = new BindingMetadataProcessor(_inputToolkit, _originalAction);
             _rebindingProcessor = new RebindingMetadataProcessor(_inputToolkit, _originalAction);
             _keyListener = new KeyListener(
                 cancelThroughEscape: _cancelThroughEscape,
@@ -122,6 +122,9 @@ namespace SensenToolkit
 
         private void Start()
         {
+            _originalBindings = new BindingPlusCollectionBuilder()
+                .AddRange(_actionReference.Action, _originalAction.bindings)
+                .Build();
             RecloneTestAction();
             RefreshIfVisible();
         }
@@ -188,20 +191,21 @@ namespace SensenToolkit
         {
             if (action == null || action.bindings.Count == 0) return "Unbound";
 
-            IEnumerable<BindingMetadata> bindingsMetadata = _metadataProcessor.ProcessAllBindings(action.bindings);
+            BindingPlusCollection bindings = BindingPlusCollectionBuilder.Build(action);
 
             List<string> displayStrings = new();
-            foreach (BindingMetadata bindingData in bindingsMetadata)
+            foreach (BindingPlus plus in bindings)
             {
-                string str = bindingData.DisplayString;
-                string bindingId = bindingData.Binding.id.ToString();
+                string str = plus.DisplayString;
+                string bindingId = plus.Binding.id.ToString();
                 bool isPerforming = _performingAction
                     && _testAction != null
                     && _testAction.activeControl != null
-                    && bindingData.EnumerateAllBindings().Any((b) => InputControlPath.Matches(b.Binding.effectivePath, _testAction.activeControl));
+                    && plus.EnumerateBindingsWithPath()
+                        .Any((b) => InputControlPath.Matches(b.Binding.effectivePath, _testAction.activeControl));
                 str = $"<link=\"{bindingId}\">{str}</link>";
                 bool isHovered = _hoveredBindings.Contains(bindingId);
-                bool canBeDeleted = CanBindingBeDeleted(bindingData);
+                bool canBeDeleted = CanBindingBeDeleted(plus);
                 bool isInteracting = isPerforming || isHovered;
                 if (isInteracting)
                 {
@@ -219,7 +223,7 @@ namespace SensenToolkit
                         str = $"<i>{str}</i>";
                     }
                 }
-                else if (bindingData.IsDefaultBinding)
+                else if (plus.IsDefaultBinding)
                 {
                     str = $"<color={_defaultBindingColor.ToHex()}>{str}</color>";
                 }
@@ -237,9 +241,7 @@ namespace SensenToolkit
 
         private async UniTaskVoid OnAddClickedAsync()
         {
-            InputAction action = _actionReference.Action;
-            // Debug.Log($"[Bind:{action.name}:{action.type}:{action.expectedControlType}] Started");
-            await StartListeningWizard(action);
+            await StartListeningWizard(_actionReference.Action);
         }
 
         private async UniTask StartListeningWizard(InputAction action)
@@ -266,9 +268,11 @@ namespace SensenToolkit
 
             if (result.HasListened)
             {
-                ApplySingleKeyListeningResult(result);
-                RecloneTestAction();
-                RefreshComponents();
+                RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(result);
+                var newBinding = BindingPlus.Build(_actionReference.Action, rebindingMetadata.NewBinding);
+                _overlay.UpdateKeyName(newBinding.DisplayString);
+
+                TryToAppendBinding(newBinding);
             }
 
             _overlay.Hide(delay: result.HasListened ? 0.15f : 0f);
@@ -281,107 +285,133 @@ namespace SensenToolkit
                 keyListener: _keyListener,
                 overlay: _overlay,
                 rebindingProcessor: _rebindingProcessor,
-                bindingProcessor: _metadataProcessor,
                 getActionName: GetActionHumanName,
                 getPartHumanName: GetPartHumanName
             );
 
             Vector2ListeningWizardResult wizardResult = await wizard.CaptureComposite();
 
-            if (!wizardResult.IsSuccess) return;
-
-            if (wizardResult.IsSingleCompositePart)
+            if (!wizardResult.IsSuccess)
             {
-                Vector2CompositionPartListeningResult singlePartResult = wizardResult.SingleCompositePartResult.Value;
-                KeyListeningResult listeningResult = singlePartResult.ListeningResult;
-                var path = BindingPathComponents.FromFullPath(listeningResult.NewPath);
-                path.SetControlPart(null);
-                listeningResult.NewPath = path.AsString;
-                ApplySingleKeyListeningResult(listeningResult);
-            }
-            else
-            {
-                ApplyCompositeListeningResult(wizardResult);
-            }
-            RecloneTestAction();
-            RefreshComponents();
-        }
-
-        private void ApplySingleKeyListeningResult(KeyListeningResult result)
-        {
-            if (!result.HasListened) return;
-
-            RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(result);
-            InputBinding binding = rebindingMetadata.NewBinding;
-            BindingMetadata bindingData = _metadataProcessor.ProcessSingleBinding(binding);
-            _overlay.UpdateKeyName(bindingData.DisplayString);
-            if (rebindingMetadata.IsAlreadyBound)
-            {
-                InputAction action = result.Action;
-                string newPath = result.NewPath;
-                // Debug.Log($"[Bind:{action.name}] Path {newPath} is already bound, skipping adding new binding.");
+                Debug.Log("[Bind] Vector2 Listening Wizard was cancelled or failed.");
                 return;
             }
 
-            ChangeAction((action) =>
-            {
-                InputBinding b = rebindingMetadata.NewBinding;
-                action.AddBinding(b.path).WithGroups(b.groups);
-            });
+            TryToAppendBinding(wizardResult.NewBinding);
+
+            // if (wizardResult.IsSingleBinding)
+            // {
+            //     Vector2CompositionPartListeningResult singlePartResult = wizardResult.SingleCompositePartResult.Value;
+            //     KeyListeningResult listeningResult = singlePartResult.ListeningResult;
+            //     var path = BindingPathComponents.FromFullPath(listeningResult.NewPath);
+            //     path.SetControlPart(null);
+            //     listeningResult.NewPath = path.AsString;
+            //     ApplySingleKeyListeningResult(listeningResult);
+            // }
+            // else
+            // {
+            //     ApplyCompositeListeningResult(wizardResult);
+            // }
+            // RecloneTestAction();
+            // RefreshComponents();
         }
 
-        private void ApplyCompositeListeningResult(Vector2ListeningWizardResult wizardResult)
+        private void TryToAppendBinding(BindingPlus newBinding)
         {
-            List<InputBinding> partBindings = new();
-
-            foreach (Vector2CompositionPartListeningResult partResult in wizardResult.AllResults)
+            InputAction action = _actionReference.Action;
+            BindingPlusCollection bindings = BindingPlusCollectionBuilder.Build(action);
+            bool isAlreadyBound = bindings.ContainsEquivalent(newBinding);
+            if (isAlreadyBound)
             {
-                KeyListeningResult listeningResult = partResult.ListeningResult;
-                RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(listeningResult);
-                InputBinding binding = rebindingMetadata.NewBinding;
-                binding.name = partResult.PartName;
-                partBindings.Add(binding);
+                string newPath = newBinding.Path.AsString;
+                Debug.Log($"[Bind:{action.name}] Path {newPath} is already bound, skipping adding new binding.");
+                return;
             }
 
-            ChangeAction((action) =>
-            {
-                InputActionSetupExtensions.CompositeSyntax compositeBuilder = action.AddCompositeBinding("2DVector");
-                foreach (InputBinding partBinding in partBindings)
-                {
-                    compositeBuilder.With(
-                        name: partBinding.name,
-                        binding: partBinding.path,
-                        groups: partBinding.groups
-                    );
-                }
-            });
+            bindings = bindings.WithAppended(newBinding);
+
+            ChangeAction(bindings.ReplaceActionBindings);
+
+            // RecloneTestAction();
+            // RefreshComponents();
         }
+
+        // private void ApplyCompositeListeningResult(Vector2ListeningWizardResult wizardResult)
+        // {
+        //     // TODO: Wizard should return a BindingPlus
+        //     // Check if is already bound
+        //     List<InputBinding> rawNewBindings = new()
+        //     {
+        //         new InputBinding
+        //         {
+        //             path = "2DVector",
+        //             isComposite = true,
+        //         }
+        //     };
+
+        //     foreach (Vector2CompositionPartListeningResult partResult in wizardResult.RawResults)
+        //     {
+        //         KeyListeningResult listeningResult = partResult.ListeningResult;
+        //         RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(listeningResult);
+        //         InputBinding binding = rebindingMetadata.NewBinding;
+        //         binding.name = partResult.PartName;
+        //         binding.isPartOfComposite = true;
+        //         rawNewBindings.Add(binding);
+        //     }
+
+        //     ChangeAction((action) =>
+        //     {
+        //         for (int i = 0; i < rawNewBindings.Count; i++)
+        //         {
+        //             InputUtils.AddNextBindingsToAction(action, rawNewBindings, ref i);
+        //         }
+        //     });
+        // }
 
         private void OnAddDefaultsClicked()
         {
             if (_originalAction == null) return;
 
-            ChangeAction((action) =>
-            {
-                var currentBindings = action.bindings.ToList();
-                var safeLoop = new SafeLoop(250);
-                while (action.bindings.Count > 0)
-                {
-                    action.ChangeBinding(0).Erase();
-                    safeLoop.Count();
-                }
-                foreach (InputBinding binding in _originalAction.bindings)
-                {
-                    action.AddBinding(binding);
-                }
+            BindingPlusCollection newBindings = BindingPlusCollectionBuilder
+                .Build(_actionReference.Action)
+                .WithPrependedDefaultBindings(_originalBindings);
 
-                foreach (InputBinding binding in currentBindings)
-                {
-                    bool isAlreadyBound = action.bindings.Any(b => binding.effectivePath == b.effectivePath);
-                    if (isAlreadyBound) continue;
-                    action.AddBinding(binding);
-                }
-            });
+            ChangeAction(newBindings.ReplaceActionBindings);
+
+            // ChangeAction((action) =>
+            // {
+            //     var safeLoop = new SafeLoop(250);
+            //     while (action.bindings.Count > 0)
+            //     {
+            //         action.ChangeBinding(0).Erase();
+            //         safeLoop.Count();
+            //     }
+
+            //     for (int i = 0; i < _originalBindings.Count; i++)
+            //     {
+            //         InputUtils.AddNextBindingsToAction(action, _originalBindings, ref i);
+            //     }
+
+            //     List<InputBinding> bindingsToAdd = new();
+            //     foreach (BindingPlus binding in newBindings)
+            //     {
+            //         bool isAnOriginalBinding = _originalBindingKeys.Contains(binding.Key);
+            //         if (isAnOriginalBinding) continue;
+            //         bindingsToAdd.Add(binding.Binding);
+            //         if (binding.Binding.isComposite)
+            //         {
+            //             foreach (BindingPlus part in binding.CompositeChildren)
+            //             {
+            //                 bindingsToAdd.Add(part.Binding);
+            //             }
+            //         }
+            //     }
+
+            //     for (int i = 0; i < bindingsToAdd.Count; i++)
+            //     {
+            //         InputUtils.AddNextBindingsToAction(action, bindingsToAdd, ref i);
+            //     }
+            // });
         }
 
         private void OnActionPerformed(InputAction.CallbackContext context)
@@ -405,8 +435,8 @@ namespace SensenToolkit
             if (bindingIndex < 0) return;
 
             InputBinding binding = action.bindings[bindingIndex];
-            IEnumerable<BindingMetadata> bindingsMetadata = _metadataProcessor.ProcessAllBindings(action.bindings);
-            BindingMetadata bindingData = bindingsMetadata.FirstOrDefault(b => b.Binding.id == bindingId);
+            BindingPlusCollection bindingsMetadata = BindingPlusCollectionBuilder.Build(action);
+            BindingPlus bindingData = bindingsMetadata.FirstOrDefault(b => b.Binding.id == bindingId);
             if (!CanBindingBeDeleted(bindingData)) return;
 
             ChangeAction((_) =>
@@ -415,10 +445,10 @@ namespace SensenToolkit
             });
         }
 
-        private bool CanBindingBeDeleted(BindingMetadata binding)
+        private bool CanBindingBeDeleted(BindingPlus binding)
         {
             bool isDeletionBlocked = binding
-                .EnumerateAllBindings()
+                .EnumerateBindingsWithPath()
                 .All((bingingData) => bingingData.IsComposite || BlockedDeletionsSet.Contains(bingingData.Binding.effectivePath));
             return !isDeletionBlocked;
         }
@@ -507,21 +537,15 @@ namespace SensenToolkit
                     safeLoop.Count();
                 }
 
+                List<InputBinding> bindingsToReplicate = new();
                 foreach (InputBinding binding in sourceAction.bindings)
                 {
                     if (!instruction.IsReplicationAllowed(binding.effectivePath)) continue;
-
-                    InputBinding bindingClone = new()
-                    {
-                        name = binding.name,
-                        id = binding.id,
-                        path = binding.effectivePath,
-                        interactions = binding.interactions,
-                        processors = binding.processors,
-                        groups = binding.groups,
-                        action = binding.action,
-                    };
-                    targetAction.AddBinding(bindingClone);
+                    bindingsToReplicate.Add(binding);
+                }
+                for (int i = 0; i < bindingsToReplicate.Count; i++)
+                {
+                    InputUtils.AddNextBindingsToAction(targetAction, bindingsToReplicate, ref i);
                 }
                 if (wasEnabled) targetAction.Enable();
             }
@@ -624,9 +648,9 @@ namespace SensenToolkit
         private void PrintBindingsMetadataDebugInfo()
         {
             InputAction action = _actionReference.Action;
-            IEnumerable<BindingMetadata> bindingsMetadata = _metadataProcessor.ProcessAllBindings(action.bindings);
+            BindingPlusCollection bindingsMetadata = BindingPlusCollectionBuilder.Build(action);
             Debug.Log($"[BindingsMetadata:{action.name}] Total: {bindingsMetadata.Count()}");
-            foreach (BindingMetadata b in bindingsMetadata)
+            foreach (BindingPlus b in bindingsMetadata)
             {
                 Debug.Log(string.Join(" | ", new string[]
                 {
@@ -634,30 +658,28 @@ namespace SensenToolkit
                     $"{(b.IsKeyboardAndMouse ? "keyboard&mouse" : "")}",
                     $"{(b.IsKnownStandardDevice ? "knownDevice" : "")}",
                     $"{(b.IsComposite ? "isComposite" : "")}",
-                    $"DeviceIdGroup:{b.DeviceIdGroup}",
-                    $"DeviceShortName: {b.DeviceShortName}",
+                    $"DeviceId:{b.DeviceId}",
+                    $"DeviceShortName: {b.CustomDeviceShortName}",
                     $"IsDefaultBinding: {b.IsDefaultBinding}",
                     $"PathDevice: {b.Path.Device}",
                     $"PathControl: {b.Path.Control}",
-                    $"PathControlPart: {b.Path.ControlPart}",
-                    $"OrderIndex: {b.OrderIndex}"
+                    $"PathControlPart: {b.Path.ControlPart}"
                 }));
-                if (b.IsComposite && b.CompositeParts != null)
+                if (b.IsComposite && b.CompositeChildren != null)
                 {
-                    foreach (BindingMetadata part in b.CompositeParts)
+                    foreach (BindingPlus part in b.CompositeChildren)
                     {
                         Debug.Log(string.Join(" | ", new string[]
                         {
                             $"\t[Part:{part.Binding.effectivePath}] {part.DisplayString}",
                             $"{(part.IsKeyboardAndMouse ? "keyboard&mouse" : "")}",
                             $"{(part.IsKnownStandardDevice ? "knownDevice" : "")}",
-                            $"DeviceIdGroup:{part.DeviceIdGroup}",
-                            $"DeviceShortName: {part.DeviceShortName}",
+                            $"DeviceIdGroup:{part.DeviceId}",
+                            $"DeviceShortName: {part.CustomDeviceShortName}",
                             $"IsDefaultBinding: {part.IsDefaultBinding}",
                             $"PathDevice: {part.Path.Device}",
                             $"PathControl: {part.Path.Control}",
-                            $"PathControlPart: {part.Path.ControlPart}",
-                            $"OrderIndex: {part.OrderIndex}"
+                            $"PathControlPart: {part.Path.ControlPart}"
                         }));
                     }
                 }

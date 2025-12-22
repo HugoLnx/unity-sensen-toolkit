@@ -12,7 +12,7 @@ namespace SensenToolkit
     {
         public InputBinding NewBinding { get; internal set; }
         public bool IsKnownDevice;
-        public bool IsAlreadyBound { get; internal set; }
+        // public bool IsAlreadyBound { get; internal set; }
         public string UnknownDeviceGroup;
         public string UnknownDeviceShortName;
     }
@@ -54,11 +54,6 @@ namespace SensenToolkit
             "<Gamepad>/leftStick/right",
         };
 
-        public const string DEVICE_SHORTNAME_PREFIX = "[DEVICE]";
-        public static readonly List<string> Vector2CompositeOrder = new()
-        {
-            "Up", "Left", "Down", "Right",
-        };
         private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
         private static readonly Regex s_versionRegex = new(@"\d[\.,\d_-]+", RegexOptions.Compiled);
         private static readonly Regex s_specialCharsRegex = new(@"[^\d\w]", RegexOptions.Compiled);
@@ -88,25 +83,32 @@ namespace SensenToolkit
             string mainGroup = isKeyboardAndMouse
                 ? _inputToolkit.BindingGroupKeyboardAndMouse
                 : _inputToolkit.BindingGroupGamepad;
-            bool isKnownStandardGamepad = BindingMetadataProcessor.IsKnownStandardGamepadPath(newPath);
+            bool isKnownStandardGamepad = IsKnownStandardGamepadPath(newPath);
             bool isKnownDevice = isKeyboardAndMouse || isKnownStandardGamepad;
             string unknownDeviceGroup = isKnownDevice ? null : DeviceToGroupName(device);
             string unknownDeviceShortName = isKnownDevice ? null : DeviceShortName(device);
 
-            bool isAlreadyBound = action.controls.Any(control => InputControlPath.Matches(newPath, control));
-            string groups = isKnownDevice
-                ? mainGroup
-                : $"{mainGroup};{unknownDeviceGroup};{DEVICE_SHORTNAME_PREFIX}{unknownDeviceShortName}";
+            // bool isAlreadyBound = action.controls.Any(control => InputControlPath.Matches(newPath, control));
+            List<string> groupsList = new() { mainGroup };
+            if (!isKnownDevice)
+            {
+                groupsList.Add($"{BindingPlus.DEVICE_ID_PREFIX}{unknownDeviceGroup}");
+                groupsList.Add($"{BindingPlus.DEVICE_SHORTNAME_PREFIX}{unknownDeviceShortName}");
+            }
+            groupsList.Add(BindingPlus.CUSTOM_BINDING_GROUP);
+            string groups = BindingGroups.Join(groupsList);
             InputBinding newBinding = new()
             {
                 path = newPath,
                 groups = groups
             };
+
+
             return new RebindingMetadata
             {
                 NewBinding = newBinding,
                 IsKnownDevice = isKnownDevice,
-                IsAlreadyBound = isAlreadyBound,
+                // IsAlreadyBound = isAlreadyBound,
                 UnknownDeviceGroup = unknownDeviceGroup,
                 UnknownDeviceShortName = unknownDeviceShortName,
             };
@@ -177,6 +179,21 @@ namespace SensenToolkit
             string fullHash = Hash128.Compute(hashInput).ToString();
 
             return $"{DeviceShortName(device)}{fullHash[..8]}";
+        }
+
+        private static bool IsKnownStandardGamepadPath(string path)
+        {
+            var pathComponents = BindingPathComponents.FromFullPath(path);
+            bool isGamepadPath = pathComponents.Device.Equals("<gamepad>", StringComparison.OrdinalIgnoreCase);
+            if (isGamepadPath) return true;
+
+            bool isJoystickPath = pathComponents.Device.Equals("<joystick>", StringComparison.OrdinalIgnoreCase);
+            // If is not joystick nor gamepad path, then it's not known gamepad
+            if (!isJoystickPath) return false;
+
+            // <Joystick>/Trigger has different trigger button on different joystick models
+            bool isStandardizedJoystickPath = !pathComponents.Control.Equals("trigger", StringComparison.OrdinalIgnoreCase);
+            return isStandardizedJoystickPath;
         }
     }
 }

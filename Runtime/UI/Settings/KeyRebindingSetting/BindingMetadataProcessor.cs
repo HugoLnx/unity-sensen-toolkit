@@ -7,163 +7,113 @@ using UnityEngine.InputSystem;
 
 namespace SensenToolkit
 {
-    public class BindingMetadata
-    {
-        public InputBinding Binding;
-        public BindingPathComponents Path;
-        public bool IsKeyboardAndMouse;
-        public bool IsKnownStandardDevice;
-        public string DeviceIdGroup;
-        public string DeviceShortName;
-        public int OrderIndex;
-        public bool IsDefaultBinding;
-        public bool IsComposite;
-        public List<BindingMetadata> CompositeParts;
-        public BindingMetadata ParentComposite;
+    // public class BindingMetadata
+    // {
+    //     public InputBinding Binding;
+    //     public BindingPathComponents Path;
+    //     public bool IsComposite => Binding.isComposite;
+    //     public List<BindingMetadata> CompositeParts;
+    //     public BindingMetadata ParentComposite;
 
-        private string _displayString;
-        public string DisplayString => _displayString ??= BindingDisplayStringUtils.GenerateDisplayStringFor(this);
-        private string _displayStringShortenedForComposite;
-        public string DisplayStringShortenedForComposite => _displayStringShortenedForComposite
-            ??= BindingDisplayStringUtils.GenerateDisplayStringFor(this, shortenForComposite: true);
+    //     private List<string> _groups;
+    //     public IReadOnlyList<string> Groups => _groups ??= BindingGroups
+    //         .Split(IsComposite ? CompositeParts[0].Binding.groups : Binding.groups)
+    //         .ToList();
 
-        public string DeviceId => IsKnownStandardDevice ? Path.Device : DeviceIdGroup;
+    //     private HashSet<string> _groupsSet;
+    //     public HashSet<string> GroupsSet => _groupsSet ??= new HashSet<string>(Groups);
 
-        public IEnumerable<BindingMetadata> EnumerateAllBindings()
-        {
-            yield return this;
-            if (IsComposite && CompositeParts != null)
-            {
-                foreach (BindingMetadata part in CompositeParts)
-                {
-                    yield return part;
-                }
-            }
-        }
-    }
 
-    public class BindingMetadataProcessor
-    {
-        private const string DEVICE_SHORTNAME_PREFIX = RebindingMetadataProcessor.DEVICE_SHORTNAME_PREFIX;
-        private readonly InputToolkitService _inputToolkit;
-        private readonly InputAction _originalAction;
-        private HashSet<string> _defaultBindingPaths;
-        private HashSet<string> DefaultBindingPaths => _defaultBindingPaths
-            ??= new(_originalAction.bindings.Select(b => b.effectivePath));
+    //     public IEnumerable<BindingMetadata> EnumerateAllBindings()
+    //     {
+    //         yield return this;
+    //         if (IsComposite && CompositeParts != null)
+    //         {
+    //             foreach (BindingMetadata part in CompositeParts)
+    //             {
+    //                 yield return part;
+    //             }
+    //         }
+    //     }
+    // }
 
-        public BindingMetadataProcessor(
-            InputToolkitService inputToolkit,
-            InputAction originalAction
-        )
-        {
-            _inputToolkit = inputToolkit;
-            _originalAction = originalAction;
-        }
+    // public class BindingMetadataProcessor
+    // {
+    //     private const string DEVICE_SHORTNAME_PREFIX = BindingPlus.DEVICE_SHORTNAME_PREFIX;
+    //     private const string DEVICE_ID_PREFIX = BindingPlus.DEVICE_ID_PREFIX;
+    //     private const string CUSTOM_BINDING_GROUP = BindingPlus.CUSTOM_BINDING_GROUP;
+    //     private readonly InputToolkitService _inputToolkit;
+    //     private readonly InputAction _originalAction;
+    //     private HashSet<string> _defaultBindingPaths;
+    //     private HashSet<string> DefaultBindingPaths => _defaultBindingPaths
+    //         ??= new(_originalAction.bindings.Select(b => b.effectivePath));
 
-        public IEnumerable<BindingMetadata> ProcessAllBindings(IReadOnlyList<InputBinding> bindings)
-        {
-            for (int i = 0; i < bindings.Count; i++)
-            {
-                InputBinding binding = bindings[i];
-                if (binding.isPartOfComposite)
-                {
-                    Debug.LogError($"[KeyRebindingSetting:{_originalAction.name}] Skipping composite part binding: {binding.ToDisplayString()}");
-                    continue;
-                }
-                if (binding.isComposite)
-                {
-                    List<BindingMetadata> compositeParts = new();
-                    int compositeOrderIndex = i;
-                    i++;
-                    while (i < bindings.Count && bindings[i].isPartOfComposite)
-                    {
-                        BindingMetadata bindingPart = ProcessSingleBinding(bindings[i], i);
-                        compositeParts.Add(bindingPart);
-                        i++;
-                    }
-                    i--;
+    //     public BindingMetadataProcessor(
+    //         InputToolkitService inputToolkit,
+    //         InputAction originalAction
+    //     )
+    //     {
+    //         _inputToolkit = inputToolkit;
+    //         _originalAction = originalAction;
+    //     }
 
-                    var compositeBinding = new BindingMetadata
-                    {
-                        Binding = binding,
-                        IsComposite = true,
-                        CompositeParts = compositeParts,
-                        DeviceIdGroup = compositeParts[0].DeviceIdGroup,
-                        DeviceShortName = compositeParts[0].DeviceShortName,
-                        IsDefaultBinding = compositeParts[0].IsDefaultBinding,
-                        IsKeyboardAndMouse = compositeParts[0].IsKeyboardAndMouse,
-                        IsKnownStandardDevice = compositeParts[0].IsKnownStandardDevice,
-                        Path = compositeParts[0].Path.Clone(),
-                        OrderIndex = compositeOrderIndex
-                    };
+    //     // public BindingPlusCollection ProcessAllBindings(IReadOnlyList<InputBinding> bindings)
+    //     // {
+    //     //     for (int i = 0; i < bindings.Count; i++)
+    //     //     {
+    //     //         InputBinding binding = bindings[i];
+    //     //         if (binding.isPartOfComposite)
+    //     //         {
+    //     //             Debug.LogError($"[KeyRebindingSetting:{_originalAction.name}] Skipping composite part binding: {binding.ToDisplayString()}");
+    //     //             continue;
+    //     //         }
+    //     //         if (binding.isComposite)
+    //     //         {
+    //     //             List<BindingMetadata> compositeParts = new();
+    //     //             i++;
+    //     //             while (i < bindings.Count && bindings[i].isPartOfComposite)
+    //     //             {
+    //     //                 BindingMetadata bindingPart = ProcessSingleBinding(bindings[i]);
+    //     //                 compositeParts.Add(bindingPart);
+    //     //                 i++;
+    //     //             }
+    //     //             i--;
 
-                    foreach (BindingMetadata part in compositeParts)
-                    {
-                        part.ParentComposite = compositeBinding;
-                        if (!part.Path.MatchesControl(compositeBinding.Path.Control))
-                        {
-                            compositeBinding.Path.SetControlPart(null);
-                            compositeBinding.Path.SetControl(null);
-                            break;
-                        }
-                    }
+    //     //             var compositeBinding = new BindingMetadata
+    //     //             {
+    //     //                 Binding = binding,
+    //     //                 CompositeParts = compositeParts,
+    //     //                 Path = compositeParts[0].Path.Clone(),
+    //     //             };
 
-                    yield return compositeBinding;
-                }
-                else
-                {
-                    yield return ProcessSingleBinding(binding, i);
-                }
-            }
-        }
+    //     //             foreach (BindingMetadata part in compositeParts)
+    //     //             {
+    //     //                 part.ParentComposite = compositeBinding;
+    //     //                 if (!part.Path.MatchesControl(compositeBinding.Path.Control))
+    //     //                 {
+    //     //                     compositeBinding.Path.SetControlPart(null);
+    //     //                     compositeBinding.Path.SetControl(null);
+    //     //                     break;
+    //     //                 }
+    //     //             }
 
-        public BindingMetadata ProcessSingleBinding(InputBinding binding, int orderIndex = -1)
-        {
-            HashSet<string> groups = new((binding.groups ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries));
-            bool isKeyboardAndMouse = groups.Contains(_inputToolkit.BindingGroupKeyboardAndMouse);
-            groups.ExceptWith(_inputToolkit.BindingGroups);
-            bool isKnownDevice = groups.Count == 0;
-            string deviceNameGroup = isKnownDevice
-                ? null
-                : groups.FirstOrDefault(g => g.StartsWith(DEVICE_SHORTNAME_PREFIX, StringComparison.OrdinalIgnoreCase));
-            string deviceShortName = null;
-            if (deviceNameGroup != null)
-            {
-                groups.Remove(deviceNameGroup);
-                deviceShortName = deviceNameGroup[DEVICE_SHORTNAME_PREFIX.Length..];
-            }
+    //     //             yield return compositeBinding;
+    //     //         }
+    //     //         else
+    //     //         {
+    //     //             yield return ProcessSingleBinding(binding);
+    //     //         }
+    //     //     }
+    //     // }
 
-            string deviceIdGroup = isKnownDevice ? null : groups.First();
-
-            bool isDefaultBinding = DefaultBindingPaths.Contains(binding.effectivePath);
-
-            string path = binding.effectivePath;
-            return new BindingMetadata
-            {
-                Binding = binding,
-                IsKeyboardAndMouse = isKeyboardAndMouse,
-                IsKnownStandardDevice = isKnownDevice,
-                DeviceIdGroup = deviceIdGroup,
-                DeviceShortName = deviceShortName,
-                OrderIndex = orderIndex,
-                IsDefaultBinding = isDefaultBinding,
-                Path = BindingPathComponents.FromFullPath(path),
-            };
-        }
-
-        public static bool IsKnownStandardGamepadPath(string path)
-        {
-            var pathComponents = BindingPathComponents.FromFullPath(path);
-            bool isGamepadPath = pathComponents.Device.Equals("<gamepad>", StringComparison.OrdinalIgnoreCase);
-            if (isGamepadPath) return true;
-
-            bool isJoystickPath = pathComponents.Device.Equals("<joystick>", StringComparison.OrdinalIgnoreCase);
-            // If is not joystick nor gamepad path, then it's not known gamepad
-            if (!isJoystickPath) return false;
-
-            // <Joystick>/Trigger has different trigger button on different joystick models
-            bool isStandardizedJoystickPath = !pathComponents.Control.Equals("trigger", StringComparison.OrdinalIgnoreCase);
-            return isStandardizedJoystickPath;
-        }
-    }
+    //     // public BindingMetadata ProcessSingleBinding(InputBinding binding)
+    //     // {
+    //     //     string path = binding.effectivePath;
+    //     //     return new BindingMetadata
+    //     //     {
+    //     //         Binding = binding,
+    //     //         Path = BindingPathComponents.FromFullPath(path),
+    //     //     };
+    //     // }
+    // }
 }

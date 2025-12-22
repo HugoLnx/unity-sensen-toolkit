@@ -2,30 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace SensenToolkit
 {
     public static class BindingDisplayStringUtils
     {
         private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
-        public static string GenerateDisplayStringFor(BindingMetadata bindingMetadata, bool shortenForComposite = false)
+        public static string GenerateDisplayStringFor(BindingPlus plus, bool shortenForComposite = false)
         {
-            string buttonName = CustomButtonNameFor(bindingMetadata, shortenForComposite);
+            string buttonName = CustomButtonNameFor(plus, shortenForComposite);
 
             if (string.IsNullOrEmpty(buttonName))
             {
-                buttonName = bindingMetadata.IsComposite
-                    ? BuildCompositeDisplayStringFor(bindingMetadata)
-                    : bindingMetadata.Binding.ToDisplayString();
+                buttonName = plus.IsComposite
+                    ? BuildCompositeDisplayStringFor(plus)
+                    : plus.Binding.ToDisplayString();
             }
-            string displayString = bindingMetadata.IsKnownStandardDevice || shortenForComposite
+            string displayString = plus.IsKnownStandardDevice || shortenForComposite
                 ? buttonName
-                : BuildUnknownDeviceDisplayString(bindingMetadata.DeviceShortName, buttonName);
+                : BuildUnknownDeviceDisplayString(plus.CustomDeviceShortName, buttonName);
 
             return s_blankRegex.Replace(displayString, "");
         }
 
-        private static string CustomButtonNameFor(BindingMetadata cb, bool shortenForComposite = false)
+        private static string CustomButtonNameFor(BindingPlus cb, bool shortenForComposite = false)
         {
             if (cb.IsComposite) return CustomButtonNameForComposite(cb);
             switch (cb.Path.Device)
@@ -88,21 +89,21 @@ namespace SensenToolkit
                     return null;
             }
         }
-        private static string BuildSubControlDisplayString(BindingMetadata cb, string subControlFilter)
+        private static string BuildSubControlDisplayString(BindingPlus plus, string subControlFilter)
         {
-            string controlName = cb.Path.Control;
+            string controlName = plus.Path.Control;
             if (controlName != subControlFilter) return null;
 
-            string compositeGroupName = GetCompositeGroupNameFor(cb) ?? controlName?.Capitalize();
-            return string.IsNullOrEmpty(cb.Path.ControlPart)
+            string compositeGroupName = GetCompositeGroupNameFor(plus) ?? controlName?.Capitalize();
+            return string.IsNullOrEmpty(plus.Path.ControlPart)
                 ? compositeGroupName
-                : $"{compositeGroupName}{cb.Path.ControlPart.Capitalize()}";
+                : $"{compositeGroupName}{plus.Path.ControlPart.Capitalize()}";
         }
 
-        private static string CustomButtonNameForComposite(BindingMetadata cb)
+        private static string CustomButtonNameForComposite(BindingPlus cb)
         {
             string commonCompositeGroupName = null;
-            foreach (BindingMetadata part in cb.CompositeParts)
+            foreach (BindingPlus part in cb.CompositeChildren)
             {
                 string compositeGroupName = GetCompositeGroupNameFor(part);
 
@@ -117,7 +118,7 @@ namespace SensenToolkit
             return commonCompositeGroupName;
         }
 
-        private static string GetCompositeGroupNameFor(BindingMetadata part)
+        private static string GetCompositeGroupNameFor(BindingPlus part)
         {
             bool isArrowKey = part.IsKeyboardAndMouse && part.Path.Control.EndsWith("Arrow");
             if (isArrowKey) return "ArrowKeys";
@@ -134,7 +135,7 @@ namespace SensenToolkit
                     case "z1":
                         return "AltRightStick2";
                     case "rz":
-                        bool isSecondary = part.ParentComposite.CompositeParts.Any(p => p.Path.MatchesControl("z1"));
+                        bool isSecondary = part.ParentComposite.CompositeChildren.Any(p => p.Path.MatchesControl("z1"));
                         return "AltRightStick" + (isSecondary ? "2" : "");
                 }
             }
@@ -154,11 +155,11 @@ namespace SensenToolkit
         private static string BuildUnknownDeviceDisplayString(string deviceShortName, string buttonName)
             => $"{deviceShortName}#{buttonName}";
 
-        private static string BuildCompositeDisplayStringFor(BindingMetadata bindingMetadata)
+        private static string BuildCompositeDisplayStringFor(BindingPlus plus)
         {
-            List<BindingMetadata> compositeParts = bindingMetadata.CompositeParts;
+            IReadOnlyList<BindingPlus> compositeParts = plus.CompositeChildren;
             string controlName = compositeParts[0].Path.Control;
-            foreach (BindingMetadata part in compositeParts)
+            foreach (BindingPlus part in compositeParts)
             {
                 if (!part.Path.MatchesControl(controlName))
                 {
@@ -172,14 +173,14 @@ namespace SensenToolkit
                 return compositeParts[0].IsKnownStandardDevice
                     ? controlName
                     : BuildUnknownDeviceDisplayString(
-                        compositeParts[0].DeviceShortName,
+                        compositeParts[0].CustomDeviceShortName,
                         controlName
                     );
             }
 
             List<string> displayStrings = new();
             bool areAllSingleChar = true;
-            foreach (BindingMetadata part in compositeParts)
+            foreach (BindingPlus part in compositeParts)
             {
                 string partDisplayString = part.DisplayStringShortenedForComposite;
                 displayStrings.Add(partDisplayString);

@@ -7,8 +7,8 @@ namespace SensenToolkit
 {
     public class InputToolkitService : ATransientSingleton<InputToolkitService>
     {
-        private const string DEFAULT_KEYBOARD_AND_MOUSE_GROUP = "KeyboardAndMouse";
-        private const string DEFAULT_GAMEPAD_GROUP = "Gamepad";
+        public const string DEFAULT_KEYBOARD_AND_MOUSE_GROUP = "KeyboardAndMouse";
+        public const string DEFAULT_GAMEPAD_GROUP = "Gamepad";
         [SerializeField] private string _keyboardAndMouseBindingGroup = DEFAULT_KEYBOARD_AND_MOUSE_GROUP;
         [SerializeField] private string _gamepadBindingGroup = DEFAULT_GAMEPAD_GROUP;
         private HashSet<string> _defaultBindingGroups;

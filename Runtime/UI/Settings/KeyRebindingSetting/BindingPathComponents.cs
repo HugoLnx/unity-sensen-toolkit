@@ -15,7 +15,7 @@ namespace SensenToolkit
         private string _fullPath;
         public string AsString => _fullPath ??= BuildStringJoined();
         public bool IsVector2CompositePart
-            => RebindingMetadataProcessor.Vector2CompositeOrder.Any(MatchesControlPart);
+            => InputConstants.Vector2CompositeControls.Any(MatchesControlPart);
 
         public BindingPathComponents(string device, string control, string controlPart = null)
         {
@@ -48,10 +48,12 @@ namespace SensenToolkit
             _fullPath = null;
         }
 
-        public void SetControlPart(string controlPart)
+        public BindingPathComponents SetControlPart(string controlPart)
         {
             ControlPart = controlPart;
             _fullPath = null;
+
+            return this;
         }
 
         public bool MatchesDevice(string device) => device == this.Device

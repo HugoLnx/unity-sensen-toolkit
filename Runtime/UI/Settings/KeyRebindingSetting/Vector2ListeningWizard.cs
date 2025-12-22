@@ -21,9 +21,10 @@ namespace SensenToolkit
     }
     public struct Vector2ListeningWizardResult
     {
-        public List<Vector2CompositionPartListeningResult> AllResults;
-        public bool IsSingleCompositePart;
-        public Vector2CompositionPartListeningResult? SingleCompositePartResult => IsSingleCompositePart ? AllResults[^1] : null;
+        public BindingPlus NewBinding;
+        public List<Vector2CompositionPartListeningResult> RawResults;
+        public bool IsSingleBinding;
+        public Vector2CompositionPartListeningResult? SingleCompositePartResult => IsSingleBinding ? RawResults[^1] : null;
         public bool IsSuccess;
     }
 
@@ -44,7 +45,6 @@ namespace SensenToolkit
         private KeyListener _keyListener;
         private KeyRebindingOverlay _overlay;
         private RebindingMetadataProcessor _rebindingProcessor;
-        private BindingMetadataProcessor _bindingProcessor;
         private Func<string> _getActionHumanName;
         private Func<string, string> _getPartHumanName;
         private string _commonDeviceId;
@@ -56,7 +56,6 @@ namespace SensenToolkit
             KeyListener keyListener,
             KeyRebindingOverlay overlay,
             RebindingMetadataProcessor rebindingProcessor,
-            BindingMetadataProcessor bindingProcessor,
             System.Func<string> getActionName,
             System.Func<string, string> getPartHumanName
         )
@@ -65,7 +64,6 @@ namespace SensenToolkit
             _keyListener = keyListener;
             _overlay = overlay;
             _rebindingProcessor = rebindingProcessor;
-            _bindingProcessor = bindingProcessor;
             _getActionHumanName = getActionName;
             _getPartHumanName = getPartHumanName;
         }
@@ -79,7 +77,7 @@ namespace SensenToolkit
             _alreadyUsed = true;
 
             List<TryCompositePartListeningResult> allTryResults = new();
-            foreach (string partName in RebindingMetadataProcessor.Vector2CompositeOrder)
+            foreach (string partName in InputConstants.Vector2CompositeNames)
             {
                 _overlay.ShowListening($"{_getActionHumanName()}/{_getPartHumanName(partName)}");
 
@@ -94,20 +92,66 @@ namespace SensenToolkit
             }
 
             TryCompositePartListeningResult latestTryResult = allTryResults[^1];
+
+            // TODO: Instead of returning AllResults, return a single BindingPlus for the composite
             Vector2ListeningWizardResult finalResult = new()
             {
-                AllResults = allTryResults.ConvertAll(r => new Vector2CompositionPartListeningResult
+                NewBinding = CreateBindingFromTryResults(allTryResults),
+                RawResults = allTryResults.ConvertAll(r => new Vector2CompositionPartListeningResult
                 {
                     PartName = r.PartName,
                     ListeningResult = r.ListeningResult
                 }),
-                IsSingleCompositePart = latestTryResult.IsVector2CompositePart,
+                IsSingleBinding = latestTryResult.IsVector2CompositePart,
                 IsSuccess = latestTryResult.IsSuccess
             };
 
             _overlay.Hide(finalResult.IsSuccess ? 0f : 0.15f);
 
             return finalResult;
+        }
+
+        private BindingPlus CreateBindingFromTryResults(List<TryCompositePartListeningResult> allTryResults)
+        {
+            if (allTryResults.Count == 0) return null;
+            TryCompositePartListeningResult latestTryResult = allTryResults[^1];
+            if (!latestTryResult.IsSuccess) return null;
+
+            bool shouldUseSingleBinding = latestTryResult.IsVector2CompositePart;
+            if (shouldUseSingleBinding)
+            {
+                KeyListeningResult keyResult = latestTryResult.ListeningResult;
+                keyResult.NewPath = BindingPathComponents
+                    .FromFullPath(keyResult.NewPath)
+                    .SetControlPart(null)
+                    .AsString;
+                RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(keyResult);
+                return BindingPlus.Build(_action, rebindingMetadata.NewBinding);
+            }
+
+            List<InputBinding> rawNewBindingParts = new();
+
+            foreach (TryCompositePartListeningResult partResult in allTryResults)
+            {
+                KeyListeningResult listeningResult = partResult.ListeningResult;
+                RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(listeningResult);
+                InputBinding binding = rebindingMetadata.NewBinding;
+                binding.name = partResult.PartName;
+                binding.isPartOfComposite = true;
+                rawNewBindingParts.Add(binding);
+            }
+
+            InputBinding rawHeadBinding = new()
+            {
+                path = "2DVector",
+                isComposite = true,
+            };
+
+            return BindingPlus.Build(
+                _action,
+                rawHeadBinding,
+                compositeChildren: rawNewBindingParts.ConvertAll(b => BindingPlus.Build(_action, b))
+            );
         }
 
         private async UniTask<TryCompositePartListeningResult> StartRebindingLoopOfPart()
@@ -177,7 +221,10 @@ namespace SensenToolkit
             }
 
             RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(rawResult);
-            BindingMetadata bindingMetadata = _bindingProcessor.ProcessSingleBinding(rebindingMetadata.NewBinding);
+            InputBinding newBinding = rebindingMetadata.NewBinding;
+            newBinding.isPartOfComposite = true;
+            rebindingMetadata.NewBinding = newBinding;
+            var bindingMetadata = BindingPlus.Build(_action, newBinding);
 
             _overlay.UpdateKeyName(bindingMetadata.DisplayString);
 
