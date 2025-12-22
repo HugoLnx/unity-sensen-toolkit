@@ -1,10 +1,7 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Utilities;
-using UnityEngine.UIElements;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Data
 {
     public struct BindingPlusBuildData
     {

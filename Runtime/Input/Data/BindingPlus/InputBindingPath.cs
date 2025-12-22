@@ -1,9 +1,10 @@
 using System;
 using System.Linq;
+using SensenToolkit.InputRebinding.Internal;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Data
 {
-    public class BindingPathComponents
+    public class InputBindingPath
     {
         /*
             <Mouse>/leftButton => "<Mouse>", "leftButton", null
@@ -17,14 +18,14 @@ namespace SensenToolkit
         public bool IsVector2CompositePart
             => InputConstants.Vector2CompositeControls.Any(MatchesControlPart);
 
-        public BindingPathComponents(string device, string control, string controlPart = null)
+        public InputBindingPath(string device, string control, string controlPart = null)
         {
             Device = device;
             Control = control;
             ControlPart = controlPart;
         }
 
-        public static BindingPathComponents FromFullPath(string path)
+        public static InputBindingPath FromFullPath(string path)
         {
             string[] pathParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
             return new(
@@ -34,7 +35,7 @@ namespace SensenToolkit
             );
         }
 
-        public BindingPathComponents Clone() => new(Device, Control, ControlPart);
+        public InputBindingPath Clone() => new(Device, Control, ControlPart);
 
         public void SetDevice(string device)
         {
@@ -48,7 +49,7 @@ namespace SensenToolkit
             _fullPath = null;
         }
 
-        public BindingPathComponents SetControlPart(string controlPart)
+        public InputBindingPath SetControlPart(string controlPart)
         {
             ControlPart = controlPart;
             _fullPath = null;

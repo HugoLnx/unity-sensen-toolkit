@@ -1,4 +1,4 @@
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     public struct Vector2CompositionPartListeningResult
     {

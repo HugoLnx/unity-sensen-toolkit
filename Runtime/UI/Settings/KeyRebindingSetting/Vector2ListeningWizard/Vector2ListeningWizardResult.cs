@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using SensenToolkit.InputRebinding.Data;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     public struct Vector2ListeningWizardResult
     {

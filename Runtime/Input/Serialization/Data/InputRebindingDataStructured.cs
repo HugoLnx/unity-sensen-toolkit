@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
+using SensenToolkit.InputRebinding.Data;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
-namespace SensenToolkit.InputRebindingSerialization
+namespace SensenToolkit.InputRebinding.Internal
 {
-    internal class InputRebindingDataStructured
+    public class InputRebindingDataStructured
     {
         public readonly IReadOnlyList<InputActionMap> ActionMaps;
         public readonly IReadOnlyList<InputActionPlus> Actions;

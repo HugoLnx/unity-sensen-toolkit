@@ -1,6 +1,6 @@
 using UnityEngine.InputSystem;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     public enum KeyListeningResultType
     {

@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using SensenToolkit.InputRebinding.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -99,6 +101,21 @@ namespace SensenToolkit
             if (wasEnabled) action.Disable();
             behaviour?.Invoke();
             if (wasEnabled) action.Enable();
+        }
+
+        public static bool IsKnownStandardGamepadPath(string path)
+        {
+            var pathComponents = InputBindingPath.FromFullPath(path);
+            bool isGamepadPath = pathComponents.Device.Equals("<gamepad>", StringComparison.OrdinalIgnoreCase);
+            if (isGamepadPath) return true;
+
+            bool isJoystickPath = pathComponents.Device.Equals("<joystick>", StringComparison.OrdinalIgnoreCase);
+            // If is not joystick nor gamepad path, then it's not known gamepad
+            if (!isJoystickPath) return false;
+
+            // <Joystick>/Trigger has different trigger button on different joystick models
+            bool isStandardizedJoystickPath = !pathComponents.Control.Equals("trigger", StringComparison.OrdinalIgnoreCase);
+            return isStandardizedJoystickPath;
         }
     }
 }

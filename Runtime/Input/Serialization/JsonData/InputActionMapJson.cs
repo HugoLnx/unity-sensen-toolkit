@@ -1,12 +1,11 @@
 using UnityEngine.InputSystem;
-using System;
 using UnityEngine;
 using System.Reflection;
 
-namespace SensenToolkit.InputRebindingSerialization
+namespace SensenToolkit.InputRebinding.Internal
 {
     [System.Serializable]
-    internal class InputActionMapJson
+    public class InputActionMapJson
     {
         private static readonly FieldInfo s_fieldId = typeof(InputActionMap).GetField("m_Id", BindingFlags.NonPublic | BindingFlags.Instance);
 

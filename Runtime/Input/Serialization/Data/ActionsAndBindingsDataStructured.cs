@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
+using SensenToolkit.InputRebinding.Data;
 using UnityEngine.InputSystem;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     public class ActionsAndBindingsDataStructured
     {

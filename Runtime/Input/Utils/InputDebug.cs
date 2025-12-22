@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using SensenToolkit.InputRebinding.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
-    internal static class InputDebug
+    public static class InputDebug
     {
         public static void DebugPrintBindingKeys(string title, HashSet<string> keyset)
         {

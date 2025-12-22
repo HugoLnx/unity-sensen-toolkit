@@ -1,10 +1,9 @@
 using System.Collections.Generic;
-using UnityEngine.InputSystem;
 
-namespace SensenToolkit.InputRebindingSerialization
+namespace SensenToolkit.InputRebinding.Internal
 {
     [System.Serializable]
-    internal class InputRebindingJsonData
+    public class InputRebindingJsonData
     {
         public List<InputBindingJson> BindingDeletions = new();
         public List<InputBindingJson> BindingAdditions = new();

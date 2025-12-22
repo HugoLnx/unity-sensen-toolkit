@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using UnityEngine;
+using SensenToolkit.InputRebinding.Data;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
-    public static class BindingDisplayStringUtils
+    public static class BindingDisplayNameGenerator
     {
         private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
-        public static string GenerateDisplayStringFor(BindingPlus plus, bool shortenForComposite = false)
+        public static string GenerateDisplayNameFor(BindingPlus plus, bool shortenForComposite = false)
         {
             string buttonName = CustomButtonNameFor(plus, shortenForComposite);
 

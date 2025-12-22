@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using SensenToolkit.InputRebinding.Data;
+using SensenToolkit.InputRebinding.Internal;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
-namespace SensenToolkit.InputRebindingSerialization
+namespace SensenToolkit
 {
     public class InputRebindingSerializer
     {
@@ -144,7 +146,7 @@ namespace SensenToolkit.InputRebindingSerialization
                 }
 
                 InputBinding newRawBinding = binding.Binding;
-                newRawBinding.groups = BindingGroups.Join(groups);
+                newRawBinding.groups = InputBindingGroups.Join(groups);
                 BindingPlus newBinding = binding.CloneWithNewBinding(newRawBinding);
                 customBindings.Add(newBinding);
             }
@@ -160,7 +162,7 @@ namespace SensenToolkit.InputRebindingSerialization
                 foreach (InputBinding b in action.bindings)
                 {
                     if (string.IsNullOrEmpty(b.groups)) continue;
-                    string[] groups = BindingGroups.Split(b.groups).ToArray();
+                    string[] groups = InputBindingGroups.Split(b.groups).ToArray();
                     foreach (string g in groups)
                     {
                         string g1 = g.Trim();

@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
+using SensenToolkit.InputRebinding.Data;
 using UnityEngine.InputSystem;
 using UnityEngine.Pool;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     // Key for uniquely identifying a binding
     // It's specially useful when checking the default bindings to delete
     // when loading the serialized rebinding data
-    internal static class BindingKeyGenerator
+    public static class BindingKeyGenerator
     {
         public static string GenerateCompositeBindingKey(
             InputAction action,
@@ -40,12 +41,12 @@ namespace SensenToolkit
             InputAction a, InputBinding b, InputActionMap actionMapOverride = null
         ) => b.isComposite
             ? $"{InputUtils.GenerateActionKey(a, actionMapOverride)}:composite-head:{b.path}"
-            : $"{InputUtils.GenerateActionKey(a, actionMapOverride)}:{b.name}:{b.path}{(b.isPartOfComposite ? ":composite-part" : "")}:{BindingGroups.Normalize(b.groups)}";
+            : $"{InputUtils.GenerateActionKey(a, actionMapOverride)}:{b.name}:{b.path}{(b.isPartOfComposite ? ":composite-part" : "")}:{InputBindingGroups.Normalize(b.groups)}";
 
         public static string GenerateCompositePartBindingShortKey(InputBinding b)
         {
             Assertx.IsTrue(b.isPartOfComposite, "Binding is not a composite part.");
-            return $"{b.name}:{b.path}:{BindingGroups.Normalize(b.groups)}";
+            return $"{b.name}:{b.path}:{InputBindingGroups.Normalize(b.groups)}";
         }
     }
 }

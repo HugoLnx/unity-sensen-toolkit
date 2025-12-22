@@ -1,4 +1,4 @@
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     [System.Serializable]
     public struct RebindingMacroConfig

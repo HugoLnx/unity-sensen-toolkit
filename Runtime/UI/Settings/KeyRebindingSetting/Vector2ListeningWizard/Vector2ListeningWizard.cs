@@ -3,8 +3,9 @@ using Cysharp.Threading.Tasks;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using System;
+using SensenToolkit.InputRebinding.Data;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     public class Vector2ListeningWizard
     {
@@ -22,7 +23,7 @@ namespace SensenToolkit
         private InputAction _action;
         private KeyListener _keyListener;
         private KeyRebindingOverlay _overlay;
-        private RebindingMetadataProcessor _rebindingProcessor;
+        private KeyListeningMetadataProcessor _rebindingProcessor;
         private Func<string> _getActionHumanName;
         private Func<string, string> _getPartHumanName;
         private string _commonDeviceId;
@@ -33,7 +34,7 @@ namespace SensenToolkit
             InputAction action,
             KeyListener keyListener,
             KeyRebindingOverlay overlay,
-            RebindingMetadataProcessor rebindingProcessor,
+            KeyListeningMetadataProcessor rebindingProcessor,
             System.Func<string> getActionName,
             System.Func<string, string> getPartHumanName
         )
@@ -99,11 +100,11 @@ namespace SensenToolkit
             if (shouldUseSingleBinding)
             {
                 KeyListeningResult keyResult = latestTryResult.ListeningResult;
-                keyResult.NewPath = BindingPathComponents
+                keyResult.NewPath = InputBindingPath
                     .FromFullPath(keyResult.NewPath)
                     .SetControlPart(null)
                     .AsString;
-                RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(keyResult);
+                KeyListeningMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(keyResult);
                 return BindingPlus.Build(_action, rebindingMetadata.NewBinding);
             }
 
@@ -112,7 +113,7 @@ namespace SensenToolkit
             foreach (TryCompositePartListeningResult partResult in allTryResults)
             {
                 KeyListeningResult listeningResult = partResult.ListeningResult;
-                RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(listeningResult);
+                KeyListeningMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(listeningResult);
                 InputBinding binding = rebindingMetadata.NewBinding;
                 binding.name = partResult.PartName;
                 binding.isPartOfComposite = true;
@@ -198,7 +199,7 @@ namespace SensenToolkit
                 return tryResult;
             }
 
-            RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(rawResult);
+            KeyListeningMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(rawResult);
             InputBinding newBinding = rebindingMetadata.NewBinding;
             newBinding.isPartOfComposite = true;
             rebindingMetadata.NewBinding = newBinding;
@@ -206,7 +207,7 @@ namespace SensenToolkit
 
             _overlay.UpdateKeyName(bindingMetadata.DisplayString);
 
-            BindingPathComponents path = bindingMetadata.Path;
+            InputBindingPath path = bindingMetadata.Path;
 
             if (_commonDeviceId == null)
             {

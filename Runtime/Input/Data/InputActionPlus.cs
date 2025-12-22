@@ -1,6 +1,6 @@
 using UnityEngine.InputSystem;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Data
 {
     [System.Serializable]
     public class InputActionPlus

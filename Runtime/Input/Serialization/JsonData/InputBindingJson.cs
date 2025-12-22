@@ -1,15 +1,14 @@
 using UnityEngine.InputSystem;
-using SensenToolkit;
 using UnityEngine;
 using System.Linq;
-using System.Reflection;
 using System;
 using System.Collections.Generic;
+using SensenToolkit.InputRebinding.Data;
 
-namespace SensenToolkit.InputRebindingSerialization
+namespace SensenToolkit.InputRebinding.Internal
 {
     [System.Serializable]
-    internal class InputBindingJson
+    public class InputBindingJson
     {
         [SerializeField] public string ActionIdRaw;
         [SerializeField] public string Name;
@@ -45,7 +44,7 @@ namespace SensenToolkit.InputRebindingSerialization
                 OverridePath = binding.overridePath,
                 OverrideInteractions = binding.overrideInteractions,
                 OverrideProcessors = binding.overrideProcessors,
-                Groups = BindingGroups.Split(binding.groups).ToList(),
+                Groups = InputBindingGroups.Split(binding.groups).ToList(),
                 IsComposite = binding.isComposite,
                 IsPartOfComposite = binding.isPartOfComposite,
             };
@@ -63,7 +62,7 @@ namespace SensenToolkit.InputRebindingSerialization
                 overridePath = String.IsNullOrEmpty(OverridePath) ? null : OverridePath,
                 overrideInteractions = String.IsNullOrEmpty(OverrideInteractions) ? null : OverrideInteractions,
                 overrideProcessors = String.IsNullOrEmpty(OverrideProcessors) ? null : OverrideProcessors,
-                groups = BindingGroups.Join(Groups),
+                groups = InputBindingGroups.Join(Groups),
                 isComposite = IsComposite,
                 isPartOfComposite = IsPartOfComposite,
             };

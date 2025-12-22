@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     [System.Serializable]
     public class BindingReplicationInstruction

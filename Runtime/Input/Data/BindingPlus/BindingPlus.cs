@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SensenToolkit.InputRebinding.Internal;
 using UnityEngine.InputSystem;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Data
 {
     public class BindingPlus
     {
@@ -13,8 +14,8 @@ namespace SensenToolkit
         public InputActionMap ActionMap { get; private set; }
         public InputAction Action { get; private set; }
         public InputBinding Binding { get; private set; }
-        private BindingPathComponents _path;
-        public BindingPathComponents Path => _path ??= BindingPathComponents.FromFullPath(Binding.path);
+        private InputBindingPath _path;
+        public InputBindingPath Path => _path ??= InputBindingPath.FromFullPath(Binding.path);
         public bool IsComposite => Binding.isComposite;
         public bool IsPartOfComposite => Binding.isPartOfComposite;
         public IReadOnlyList<BindingPlus> CompositeChildren => _mutableCompositeChildren;
@@ -32,7 +33,7 @@ namespace SensenToolkit
         public string CompositePartComparisonKey => _compositePartComparisonKey ??= EnforceCompositePartComparisonKey();
 
         private List<string> _groups;
-        public IReadOnlyList<string> Groups => _groups ??= BindingGroups
+        public IReadOnlyList<string> Groups => _groups ??= InputBindingGroups
             .Split(Binding.groups)
             .ToList();
 
@@ -69,11 +70,11 @@ namespace SensenToolkit
         public bool IsKnownStandardDevice => !IsCustomDevice;
 
         private string _displayString;
-        public string DisplayString => _displayString ??= BindingDisplayStringUtils.GenerateDisplayStringFor(this);
+        public string DisplayString => _displayString ??= BindingDisplayNameGenerator.GenerateDisplayNameFor(this);
 
         private string _displayStringShortenedForComposite;
         public string DisplayStringShortenedForComposite => _displayStringShortenedForComposite
-            ??= BindingDisplayStringUtils.GenerateDisplayStringFor(this, shortenForComposite: true);
+            ??= BindingDisplayNameGenerator.GenerateDisplayNameFor(this, shortenForComposite: true);
 
         public static BindingPlus Build(
             InputActionPlus action,
@@ -118,7 +119,7 @@ namespace SensenToolkit
             return bindingPlus;
         }
 
-        private void SetPath(BindingPathComponents path)
+        private void SetPath(InputBindingPath path)
         {
             _path = path;
         }

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.InputSystem.Utilities;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Data
 {
-    public static class BindingGroups
+    public static class InputBindingGroups
     {
         public const char SEPARATOR = ';';
 

@@ -1,4 +1,4 @@
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     public enum Vector2WizardErrorCode
     {

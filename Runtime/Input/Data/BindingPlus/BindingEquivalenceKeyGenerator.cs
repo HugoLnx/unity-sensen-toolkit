@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     // Key for fast checking if two bindings have the same behaviour/role
-    internal static class BindingEquivalenceKeyGenerator
+    public static class BindingEquivalenceKeyGenerator
     {
 
         public static string GenerateCompositeBindingEquivalenceKey(

@@ -1,10 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine.InputSystem;
 using static UnityEngine.InputSystem.InputActionRebindingExtensions;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Internal
 {
     public class KeyListener
     {
@@ -32,8 +31,8 @@ namespace SensenToolkit
             if (_cancelThroughEscape)
             {
                 op = op
-                .WithCancelingThrough(RebindingMetadataProcessor.ESCAPE_KEY_PATH)
-                .WithControlsExcluding(RebindingMetadataProcessor.ESCAPE_KEY_PATH);
+                .WithCancelingThrough(InputConstants.ESCAPE_KEY_PATH)
+                .WithControlsExcluding(InputConstants.ESCAPE_KEY_PATH);
             }
 
             foreach (string bindingPath in _ignoreBindingPaths)

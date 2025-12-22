@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.InputSystem;
 
-namespace SensenToolkit
+namespace SensenToolkit.InputRebinding.Data
 {
     public class BindingPlusCollection : IReadOnlyList<BindingPlus>
     {

@@ -4,6 +4,8 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using EasyButtons;
 using MyBox;
+using SensenToolkit.InputRebinding.Data;
+using SensenToolkit.InputRebinding.Internal;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -61,7 +63,7 @@ namespace SensenToolkit
         private InputAction _originalAction;
         private BindingPlusCollection _originalBindings;
         private List<BindingPlus> _originalBindingsPlus;
-        private RebindingMetadataProcessor _rebindingProcessor;
+        private KeyListeningMetadataProcessor _rebindingProcessor;
         private KeyListener _keyListener;
 
         private HashSet<string> _blockedDeletionsSet;
@@ -85,7 +87,7 @@ namespace SensenToolkit
             }
             _visibility.OnShow += OnShow;
             _visibility.OnHidden += OnHidden;
-            _rebindingProcessor = new RebindingMetadataProcessor(_inputToolkit, _originalAction);
+            _rebindingProcessor = new KeyListeningMetadataProcessor(_inputToolkit);
             _keyListener = new KeyListener(
                 cancelThroughEscape: _cancelThroughEscape,
                 ignoreBindingPaths: IgnoredBindingPaths
@@ -240,7 +242,7 @@ namespace SensenToolkit
 
             if (result.HasListened)
             {
-                RebindingMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(result);
+                KeyListeningMetadata rebindingMetadata = _rebindingProcessor.ProcessKeyListeningResult(result);
                 var newBinding = BindingPlus.Build(_actionReference.Action, rebindingMetadata.NewBinding);
                 _overlay.UpdateKeyName(newBinding.DisplayString);
 
@@ -441,12 +443,12 @@ namespace SensenToolkit
         {
             if (_keyboardEscapeConfig.BlockDeletion)
             {
-                yield return RebindingMetadataProcessor.ESCAPE_KEY_PATH;
+                yield return InputConstants.ESCAPE_KEY_PATH;
             }
 
             if (_keyboardArrowsConfig.BlockDeletion)
             {
-                foreach (string path in RebindingMetadataProcessor.KeyboardArrowPaths)
+                foreach (string path in InputConstants.KeyboardArrowPaths)
                 {
                     yield return path;
                 }
@@ -454,7 +456,7 @@ namespace SensenToolkit
 
             if (_gamepadDpadConfig.BlockDeletion)
             {
-                foreach (string path in RebindingMetadataProcessor.GamepadDpadPaths)
+                foreach (string path in InputConstants.GamepadDpadPaths)
                 {
                     yield return path;
                 }
@@ -462,7 +464,7 @@ namespace SensenToolkit
 
             if (_gamepadLeftStickConfig.BlockDeletion)
             {
-                foreach (string path in RebindingMetadataProcessor.GamepadLeftStickPaths)
+                foreach (string path in InputConstants.GamepadLeftStickPaths)
                 {
                     yield return path;
                 }
@@ -473,17 +475,17 @@ namespace SensenToolkit
         {
             if (_cancelThroughEscape || _keyboardEscapeConfig.BlockListening)
             {
-                yield return RebindingMetadataProcessor.ESCAPE_KEY_PATH;
+                yield return InputConstants.ESCAPE_KEY_PATH;
             }
 
-            foreach (string path in RebindingMetadataProcessor.MousePositionPaths)
+            foreach (string path in InputConstants.MousePositionPaths)
             {
                 yield return path;
             }
 
             if (_keyboardArrowsConfig.BlockListening)
             {
-                foreach (string path in RebindingMetadataProcessor.KeyboardArrowPaths)
+                foreach (string path in InputConstants.KeyboardArrowPaths)
                 {
                     yield return path;
                 }
@@ -491,7 +493,7 @@ namespace SensenToolkit
 
             if (!_gamepadDpadConfig.BlockListening)
             {
-                foreach (string path in RebindingMetadataProcessor.GamepadDpadPaths)
+                foreach (string path in InputConstants.GamepadDpadPaths)
                 {
                     yield return path;
                 }
@@ -499,7 +501,7 @@ namespace SensenToolkit
 
             if (_gamepadLeftStickConfig.BlockListening)
             {
-                foreach (string path in RebindingMetadataProcessor.GamepadLeftStickPaths)
+                foreach (string path in InputConstants.GamepadLeftStickPaths)
                 {
                     yield return path;
                 }
