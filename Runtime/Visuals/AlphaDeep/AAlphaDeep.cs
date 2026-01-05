@@ -27,11 +27,13 @@ namespace SensenToolkit
         {
             foreach (T alphaComponent in _allAlphas)
             {
+                if (alphaComponent == null) continue;
                 alphaComponent.Alpha = _alpha;
             }
 
             foreach (T alphaComponent in _extraAlphas)
             {
+                if (alphaComponent == null) continue;
                 alphaComponent.Alpha = _alpha;
             }
         }

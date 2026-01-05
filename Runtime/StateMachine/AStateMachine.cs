@@ -16,7 +16,7 @@ namespace SensenToolkit
         protected abstract TStateId InitialStateId { get; }
         protected Dictionary<TStateId, StateNode<TState, TStateId, TMessage>> Nodes = new();
         protected StateNode<TState, TStateId, TMessage> CurrentNode;
-        private TStateId[] _allStateIds;
+        [NonSerialized] private TStateId[] _allStateIds;
         public event Action<TStateId> OnStateChange;
 
 #if UNITY_EDITOR

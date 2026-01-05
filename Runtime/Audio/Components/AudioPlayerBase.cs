@@ -11,6 +11,9 @@ namespace SensenToolkit
     public abstract class AudioPlayerBase<T> : APermanentSingleton<T>
     where T : APermanentSingleton<T>
     {
+        private const string LOGGER_ID = "AudioPlayerBase";
+        private static Logx s_logger;
+        protected static Logx Logger => s_logger ??= Logx.GetLogger(LOGGER_ID, activate: false);
         [SerializeField, Range(0f, 1f)] private float _globalVolume = 1f;
         [SerializeField] private bool _isMuted;
         [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
@@ -45,7 +48,7 @@ namespace SensenToolkit
         {
             if (profile.DontPlayOnFirstFrames && !_firstFramesHavePast)
             {
-                Debug.Log($"[{typeof(T)}] Not playing {profile.name} because it is set to not play on the first frames.");
+                Logger.Info($"[{typeof(T)}] Not playing {profile.name} because it is set to not play on the first frames.");
                 return null;
             }
             AudioPlaybackCommand command = profile.GetCommand(

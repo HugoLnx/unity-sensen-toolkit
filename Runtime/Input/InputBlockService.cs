@@ -1,6 +1,6 @@
 namespace SensenToolkit
 {
-    public class InputBlockService : AMultiHolderHubService<object>
+    public class InputBlockService : AMultiHolderHubService<InputBlockService, object>
     {
         private const string APPLICATION_FOCUS_KEY = "APPLICATION_FOCUS";
         private const string APPLICATION_PAUSE_KEY = "APPLICATION_PAUSE";

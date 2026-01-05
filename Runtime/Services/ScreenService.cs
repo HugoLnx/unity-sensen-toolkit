@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using MyBox;
 using UnityEditor;
@@ -34,9 +35,9 @@ namespace SensenToolkit
             new(){width=800, height=600},
         };
 
-        private Resolution[] _resolutions;
+        [NonSerialized] private Resolution[] _resolutions;
         public Resolution[] Resolutions => _resolutions ??= BuildResolutions();
-        private string[] _resolutionKeys;
+        [NonSerialized] private string[] _resolutionKeys;
         public string[] ResolutionKeys => _resolutionKeys ??= BuildResolutionsKeys();
         public static Resolution WindowSize => new()
         {

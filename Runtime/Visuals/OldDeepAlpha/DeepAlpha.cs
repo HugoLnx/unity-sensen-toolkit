@@ -72,12 +72,12 @@ namespace SensenToolkit
                 Ignore = textMapping.Ignore,
             };
         }
-        private IAlphaCompatible[] _objs;
+        [System.NonSerialized] private IAlphaCompatible[] _objs;
         [SerializeField] private ImageAlphaMapping[] _customImgMapping;
         [SerializeField] private SpriteAlphaMapping[] _customSpriteMapping;
         [SerializeField] private TextAlphaMapping[] _customTextMapping;
         [SerializeField] private ParentAlphaMapping[] _customParentMapping;
-        private ObjectAlphaMapping[] _customMapping;
+        [System.NonSerialized] private ObjectAlphaMapping[] _customMapping;
         private Dictionary<IAlphaCompatible, ObjectAlphaMapping> _mappings = new();
         private Dictionary<Transform, ParentAlphaMapping> _parentMappings = new();
         private Dictionary<Image, IAlphaCompatible> _cachedImageAlpha = new();

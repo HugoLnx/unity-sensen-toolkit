@@ -40,7 +40,10 @@ namespace SensenToolkit
         {
             Tweenx.KillAndNullify(ref _tween);
             IsShowing = false;
-            _canvasGroup.alpha = 0f;
+            if (_canvasGroup != null)
+            {
+                _canvasGroup.alpha = 0f;
+            }
         }
 
         [Button]
