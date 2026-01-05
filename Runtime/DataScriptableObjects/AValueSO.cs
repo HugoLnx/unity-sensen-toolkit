@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using MyBox;
+using SensenToolkit.Internal;
 using UnityEngine;
 
 namespace SensenToolkit
 {
-    public abstract class AValueSO<Tvalue, Tso> : AValueSOBase
+    public abstract class AValueSO<Tvalue, Tso> : AValueSOBase, IScriptableCallbackSubscriber_OnBoot_Internal
         where Tso : AValueSO<Tvalue, Tso>
     {
         [SerializeField, MustBeAssigned] private string _name = null;
@@ -20,11 +21,13 @@ namespace SensenToolkit
         [SerializeField, ConditionalField(nameof(_useConstant))]
         private Tvalue _constantValue;
         [SerializeField, ReadOnly] protected Tvalue RawValue;
-        [SerializeField, HideInInspector] private bool _wasInitialized = false;
-        private Tvalue _prevValue;
+        [SerializeField, HideInInspector] private bool _wasInitializedInEditor = false;
+        private (bool IsSet, Tvalue Value) _prevValue;
+        private (bool IsSet, Tvalue Value) _runtimeDefaultValue = (false, default);
 
         public Tvalue Value { get => GetValue(); set => SetValue(value); }
-        public Tvalue DefaultValue => _defaultValue;
+        public Tvalue DefaultValue => ResolveDefaultValue();
+
         public override object ValueAsObject => Value;
         public override string Name => _name;
 
@@ -32,26 +35,41 @@ namespace SensenToolkit
         public event ExtraValueChangedHandler OnValueChangedExtra = delegate { };
         public event Action<Tso> OnValueChanged = delegate { };
 
-        protected void OnEnable()
-        {
-            TryInitialize();
-            TryResetToDefault();
-        }
+        private const bool ACTIVATE_LOGGER = true;
+        private Logx _logger;
+        private Logx Logger => _logger ??= Logx.GetLogger(typeof(Tso).Name, ACTIVATE_LOGGER);
 
-        protected void OnDisable()
+        protected void OnAppBoot()
         {
-            TryResetToDefault();
+            Logger.Info("OnAppBoot called.");
+            _prevValue = (false, default);
+            _runtimeDefaultValue = (false, default);
+
+            if (_resetToDefaultOnEnable)
+            {
+                RawValue = DefaultValue;
+            }
+            _wasInitializedInEditor = true;
             OnValueChangedExtra = delegate { }; // Unsubscribe all listeners
             OnValueChanged = delegate { }; // Unsubscribe all listeners
+
+            AppCore.OnAppBootingEnd += OnAppBootingEnd;
+        }
+
+        private void OnAppBootingEnd()
+        {
+            Logger.Info("OnAppBootingEnd called.");
+            TryChange();
+        }
+
+        protected void OnEnable()
+        {
+            TryInitializeInEditor();
         }
 
         protected void OnValidate()
         {
-#if UNITY_EDITOR
-            if (!Application.isPlaying && _forceDefaultWhileEditing) SetValue(_defaultValue);
-#endif
-            TryInitialize();
-            TryChange();
+            TryInitializeInEditor();
         }
 
         public void AddSyncListener(Action<Tso> listener)
@@ -65,15 +83,20 @@ namespace SensenToolkit
             OnValueChanged -= listener;
         }
 
-        private void TryResetToDefault()
+        public void ChangeDefault(Tvalue newDefault)
         {
-            if (!_resetToDefaultOnEnable) return;
-            ResetToDefault();
+            Logger.Info("ChangeDefault called.");
+            Tvalue oldDefault = DefaultValue;
+            _runtimeDefaultValue = (true, newDefault);
+
+            bool isUsingOldDefault = EqualityComparer<Tvalue>.Default.Equals(RawValue, oldDefault);
+            if (isUsingOldDefault) SetValue(DefaultValue);
         }
 
         public override void ResetToDefault()
         {
-            SetValue(_defaultValue);
+            Logger.Info("ResetToDefault called.");
+            SetValue(DefaultValue);
         }
 
         private Tvalue GetValue()
@@ -83,35 +106,48 @@ namespace SensenToolkit
 
         private void SetValue(Tvalue setValue)
         {
-            _wasInitialized = true;
+            Logger.Info("SetValue called.");
             RawValue = setValue;
             TryChange();
         }
 
         private void TryChange()
         {
-            Tvalue oldValue = _prevValue;
+            (bool hasPrevValue, Tvalue oldValue) = _prevValue;
             Tvalue newValue = Value;
 
-            bool hasChanged = !EqualityComparer<Tvalue>.Default.Equals(oldValue, newValue);
+            bool hasChanged = !hasPrevValue || !EqualityComparer<Tvalue>.Default.Equals(oldValue, newValue);
             if (hasChanged)
             {
-                _prevValue = newValue;
+                _prevValue = (true, newValue);
                 EmitValueChanged(oldValue);
             }
         }
 
         private void EmitValueChanged(Tvalue oldValue = default)
         {
+            Logger.Info("EmitValueChanged called.");
             Tvalue val = Value;
             OnValueChangedExtra.Invoke(this as Tso, val, oldValue);
             OnValueChanged.Invoke(this as Tso);
         }
 
-        private void TryInitialize()
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        private void TryInitializeInEditor()
         {
-            if (_wasInitialized) return;
+            if (
+                Application.isPlaying
+                || (!_forceDefaultWhileEditing && _wasInitializedInEditor)
+            ) return;
+            Logger.Info("Initializing in editor.");
+            _wasInitializedInEditor = true;
             RawValue = _defaultValue;
+            UnityEditor.EditorUtility.SetDirty(this);
         }
+
+        private Tvalue ResolveDefaultValue()
+            => _runtimeDefaultValue.IsSet ? _runtimeDefaultValue.Value : _defaultValue;
+
+        public void ScriptableCallback_OnBoot_Internal() => OnAppBoot();
     }
 }

@@ -99,5 +99,34 @@ namespace SensenToolkit
 
             return bestMatch;
         }
+
+        public static string Inspect(string str)
+        {
+            if (str == null) return "(NULL)";
+            return $"'{str}'";
+        }
+
+        public static string Inspect(object obj)
+        {
+            if (obj == null) return "(NULL)";
+            return $"[object:{obj}]";
+        }
+
+        public static string Inspect<T>(Nullable<T> obj) where T : struct
+        {
+            if (!obj.HasValue) return "(NULL)";
+            return $"[struct:{obj.Value}]";
+        }
+
+        public static string Inspect<T>(T value) where T : struct
+        {
+            return $"[{typeof(T).Name}:{value}]";
+        }
+
+        public static string Inspect<T>(IEnumerable<T> collection)
+        {
+            if (collection == null) return "(NULL)";
+            return $"[IEnumerable<{typeof(T).Name}>:Count={collection.Count()}]";
+        }
     }
 }

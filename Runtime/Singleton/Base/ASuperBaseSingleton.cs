@@ -1,10 +1,9 @@
-using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 namespace SensenToolkit.Internal
 {
-    public class TransientSingletonAttribute : System.Attribute { }
-
     [DefaultExecutionOrder(-1)]
     public abstract class ASuperBaseSingleton<T> : MonoBehaviour
     where T : ASuperBaseSingleton<T>
@@ -17,23 +16,32 @@ namespace SensenToolkit.Internal
         public abstract bool IsExcessSingleton { get; }
         protected abstract string DescriptiveKey { get; }
         protected abstract bool ToSingletonInstance();
-        protected abstract void OnDestroySingletonInternal();
 
-        protected const string LOGGER_ID = "Singleton";
+        private const bool ACTIVATE_LOGGER = false;
+        private const string LOGGER_ID = "Singleton";
         private static Logx s_logger;
-        private static Logx Logger => s_logger ??= Logx.GetLogger(LOGGER_ID);
+        protected static Logx Logger => s_logger ??= Logx.GetLogger(LOGGER_ID, activate: ACTIVATE_LOGGER);
 
-        public static event System.Action<T> OnSetSingleton;
+        public Scene MyScene { get; private set; }
+
+        private static object s_resetStaticsId;
 
         protected void InitializeAsSingleton()
         {
-
+            LogInfo($"[{typeof(T).Name}] Initialize as Singleton", this as T);
             if (IsPermanent)
             {
                 transform.SetParent(null);
                 DontDestroyOnLoad(gameObject);
             }
-            OnSetSingleton?.Invoke(this as T);
+            MyScene = gameObject.scene;
+            AppCore.OnScenesBatchUnloadEnd += OnSceneBatchUnloadEnd;
+        }
+
+        private void OnSceneBatchUnloadEnd(HashSet<Scene> unloadedScenes)
+        {
+            if (!unloadedScenes.Contains(MyScene)) return;
+            OnDestroyCleanup();
         }
 
 
@@ -41,30 +49,39 @@ namespace SensenToolkit.Internal
         protected virtual void AwakeSingleton() { }
         protected virtual void OnDestroySingleton() { }
         protected virtual void OnDisableSingleton() { }
+        protected virtual void OnApplicationQuitSingleton() { }
 
         protected virtual void AwakeExcess() { }
         protected virtual void OnDestroyExcess() { }
         protected virtual void OnDisableExcess() { }
+        protected virtual void OnApplicationQuitExcess() { }
 
         protected virtual void AwakeAny() { }
         protected virtual void OnDestroyAny() { }
         protected virtual void OnDisableAny() { }
+        protected virtual void OnApplicationQuitAny() { }
+        protected virtual void OnDestroyCleanup()
+        {
+            AppCore.OnScenesBatchUnloadEnd -= OnSceneBatchUnloadEnd;
+        }
 
-        protected object ResetStaticsId => _resetStaticsId ??= (typeof(T), "reset-statics");
-        private object _resetStaticsId;
 
         protected void Awake()
         {
-            AppCore.RunOnlyOnce(ResetStaticsId, ResetStatics);
             if (!IsAlreadyInstanced && (this as T).ToSingletonInstance())
             {
-                Logger.Info($"[{DescriptiveKey}] Binded awake instance");
+                LogInfo($"[{DescriptiveKey}] Binded awake instance", this as T);
             }
 
             AwakeAny();
-            if (IsActualSingleton) AwakeSingleton();
+            bool isQuitting = AppCore.IsAppQuitting || (IsTransient && AppCore.IsActiveSceneUnloading);
+            if (IsActualSingleton && !isQuitting) AwakeSingleton();
             else
             {
+                if (isQuitting)
+                {
+                    Debug.LogWarning($"{nameof(T)} Was awaken while scene is unloading or application was quitting");
+                }
                 Destroy(gameObject);
                 AwakeExcess();
             }
@@ -76,9 +93,29 @@ namespace SensenToolkit.Internal
             if (IsActualSingleton)
             {
                 OnDestroySingleton();
-                OnDestroySingletonInternal();
+                TryDestroyCleanup();
             }
             else OnDestroyExcess();
+        }
+
+        protected void OnApplicationQuit()
+        {
+            OnApplicationQuitAny();
+            if (IsActualSingleton)
+            {
+                OnApplicationQuitSingleton();
+            }
+            else OnApplicationQuitExcess();
+        }
+
+        private void TryDestroyCleanup()
+        {
+            if (
+                IsPermanent // Doesn't need to cleanup on destroy if permanent
+                || AppCore.IsAppQuitting // Doesn't need to cleanup if app is quitting
+                || AppCore.IsSceneUnloading(gameObject.scene) // It'll be cleaned up with the scene unloading
+            ) return;
+            OnDestroyCleanup();
         }
 
         protected void OnDisable()
@@ -88,11 +125,38 @@ namespace SensenToolkit.Internal
             else OnDisableExcess();
         }
 
-        protected virtual void ResetStatics()
+        protected static void StaticSuperBaseResetStatics()
         {
-            Logger.Info($"[{DescriptiveKey}] ResetStatics");
-            OnSetSingleton = null;
             s_isTransient = null;
+            s_logger = null;
+        }
+
+        protected static bool IsValidInstance(T instance)
+        {
+            return AppCore.IsAnySceneActive
+                && instance != null
+                && instance.gameObject != null
+                && instance.gameObject.scene != null
+                && AppCore.IsSceneActive(instance.gameObject.scene);
+        }
+
+        protected static string InstanceValidityDescription(T instance)
+        {
+            if (instance == null) return "instance is null";
+            if (instance.gameObject == null) return "gameObject is null";
+
+            Scene scene = instance.gameObject.scene;
+            if (scene == null) return "scene is null";
+            if (!AppCore.IsSceneActive(scene))
+            {
+                return $"{Scenex.DescribeScene(scene)} is NOT ACTIVE (active:{AppCore.ActiveScenes.Count})";
+            }
+            return "instance is valid";
+        }
+
+        protected static void LogInfo(string message, T instance = null)
+        {
+            Logger.Info($"[{(instance != null ? instance.DescriptiveKey : typeof(T).Name)}] {message}");
         }
     }
 }

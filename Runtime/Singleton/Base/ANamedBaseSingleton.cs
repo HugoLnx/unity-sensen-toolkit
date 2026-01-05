@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace SensenToolkit.Internal
 {
-    public abstract class ANamedBaseSingleton<T> : ASuperBaseSingleton<T>
+    public abstract class ANamedBaseSingleton<T> : ASuperBaseSingleton<T>, IAppCore_RuntimeInit_SubsystemRegistration_Internal
     where T : ANamedBaseSingleton<T>
     {
         private static readonly Regex s_singletonNameRegex = new(@"^[^:]+", RegexOptions.Compiled);
@@ -31,19 +31,18 @@ namespace SensenToolkit.Internal
 
         protected sealed override string DescriptiveKey => $"{typeof(T).Name}|{SingletonTypeName}|{Id}|{SingletonName}|{name}";
 
-        private static Logx s_logger;
-        private static Logx Logger => s_logger ??= Logx.GetLogger(LOGGER_ID);
-
         private static T GetOrSetInstanceByName(string singletonName)
         {
+            // AppCore.RunOnlyOnce(ResetStaticsId, StaticNamedBaseResetAncestorsStatics);
             Assertx.IsNotNull(singletonName, "Singleton name is null");
             int id = SingletonNameToId(singletonName);
-            if (s_instancesMap.TryGetValue(id, out T instance)) return instance;
+            if (s_instancesMap.TryGetValue(id, out T instance) && IsValidInstance(instance)) return instance;
 
-            instance = FindObjectsOfType<T>().FirstOrDefault(i => i.Id == id);
+            instance = FindObjectsByType<T>(FindObjectsSortMode.InstanceID)
+                .FirstOrDefault(i => i.Id == id);
             if (TrySetAndInitializeInstance(instance))
             {
-                Logger.Info($"[{instance.DescriptiveKey}] Binded found instance");
+                LogInfo($"[{instance.DescriptiveKey}] Binded found instance", instance as T);
                 return instance;
             }
 
@@ -52,7 +51,7 @@ namespace SensenToolkit.Internal
             instance = obj.AddComponent<T>();
             if (TrySetAndInitializeInstance(instance))
             {
-                Logger.Info($"[{obj.name}] Binded created instance");
+                LogInfo($"[{obj.name}] Binded created instance", instance as T);
                 obj.SetActive(true);
                 return instance;
             }
@@ -66,6 +65,8 @@ namespace SensenToolkit.Internal
         {
             if (instance == null) return false;
 
+
+            if (!IsValidInstance(instance)) throw new Exception($"[{instance.DescriptiveKey}] Cant initialize an invalid instance. ({InstanceValidityDescription(instance)})");
             if (!s_instancesMap.TryAdd(instance.Id, instance))
             {
                 throw new Exception($"[{instance.DescriptiveKey}] Instance already set");
@@ -76,22 +77,42 @@ namespace SensenToolkit.Internal
             return true;
         }
 
-        protected sealed override void ResetStatics()
-        {
-            base.ResetStatics();
-            s_instancesMap.Clear();
-            s_ids.Clear();
-        }
+        // protected sealed override void ResetStatics()
+        // {
+        //     base.ResetStatics();
+        //     StaticNamedBaseResetStatics();
+        // }
+
+        // protected static void StaticNamedBaseResetAncestorsStatics()
+        // {
+        //     StaticNamedBaseResetStatics();
+        //     StaticSuperBaseResetStatics();
+        // }
 
         private static int SingletonNameToId(string singName)
         {
             return singName.GetHashCode();
         }
 
-        protected sealed override void OnDestroySingletonInternal()
+        protected sealed override void OnDestroyCleanup()
+            => RemoveIdFromStatics();
+
+        private void RemoveIdFromStatics()
         {
             s_instancesMap.Remove(Id);
             s_ids.Remove(Id);
+        }
+
+        public static void AppCore_RuntimeInit_SubsystemRegistration_Internal()
+        {
+            StaticNamedBaseResetStatics();
+            StaticSuperBaseResetStatics();
+        }
+
+        protected static void StaticNamedBaseResetStatics()
+        {
+            s_instancesMap.Clear();
+            s_ids.Clear();
         }
     }
 }

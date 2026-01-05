@@ -57,5 +57,16 @@ namespace SensenToolkit
             int size = source.Count() / amount;
             return source.SlicesOf(size);
         }
+
+        public static IEnumerable<T> Flatten<T>(this IEnumerable<IEnumerable<T>> source)
+        {
+            foreach (IEnumerable<T> subset in source)
+            {
+                foreach (T item in subset)
+                {
+                    yield return item;
+                }
+            }
+        }
     }
 }

@@ -34,5 +34,10 @@ namespace SensenToolkit
             byte[] bytes = System.Convert.FromBase64String(str);
             return System.Text.Encoding.UTF8.GetString(bytes);
         }
+
+        public static string If(this string str, bool condition)
+        {
+            return condition ? str : string.Empty;
+        }
     }
 }
