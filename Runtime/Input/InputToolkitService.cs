@@ -7,14 +7,21 @@ namespace SensenToolkit
 {
     public class InputToolkitService : APermanentSingleton<InputToolkitService>
     {
-        public const string DEFAULT_KEYBOARD_AND_MOUSE_GROUP = "KeyboardAndMouse";
-        public const string DEFAULT_GAMEPAD_GROUP = "Gamepad";
+        private const string DEFAULT_KEYBOARD_AND_MOUSE_GROUP = "KeyboardAndMouse";
+        private const string DEFAULT_GAMEPAD_GROUP = "Gamepad";
+        public static string BindingGroupKeyboardAndMouse
+            => s_bindingGroupKeyboardAndMouse ??= ResolveGroupKeyboardAndMouse();
+        public static string BindingGroupGamepad
+            => s_bindingGroupGamepad ??= ResolveGroupGamepad();
+        private static string s_bindingGroupKeyboardAndMouse = null;
+        private static string s_bindingGroupGamepad = null;
+
         [SerializeField] private string _keyboardAndMouseBindingGroup = DEFAULT_KEYBOARD_AND_MOUSE_GROUP;
         [SerializeField] private string _gamepadBindingGroup = DEFAULT_GAMEPAD_GROUP;
         private HashSet<string> _defaultBindingGroups;
 
-        public string BindingGroupKeyboardAndMouse => _keyboardAndMouseBindingGroup;
-        public string BindingGroupGamepad => _gamepadBindingGroup;
+        public string ConfigKeyboardAndMouseGroup => _keyboardAndMouseBindingGroup;
+        public string ConfigGamepadGroup => _gamepadBindingGroup;
         public HashSet<string> BindingGroups => _defaultBindingGroups ??= new HashSet<string>
         {
             _keyboardAndMouseBindingGroup,
@@ -51,6 +58,33 @@ namespace SensenToolkit
             {
                 OnActionsChanged?.Invoke(_actions);
             }
+        }
+
+        private static string ResolveGroupGamepad()
+        {
+            InputToolkitService instance = HasInstance ? Instance : null;
+            if (instance == null || string.IsNullOrWhiteSpace(instance._gamepadBindingGroup))
+            {
+                return DEFAULT_GAMEPAD_GROUP;
+            }
+            return instance._gamepadBindingGroup;
+        }
+
+        private static string ResolveGroupKeyboardAndMouse()
+        {
+            InputToolkitService instance = HasInstance ? Instance : null;
+            if (instance == null || string.IsNullOrWhiteSpace(instance.ConfigKeyboardAndMouseGroup))
+            {
+                return DEFAULT_KEYBOARD_AND_MOUSE_GROUP;
+            }
+            return instance.ConfigKeyboardAndMouseGroup;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void Reset1()
+        {
+            s_bindingGroupKeyboardAndMouse = null;
+            s_bindingGroupGamepad = null;
         }
     }
 }

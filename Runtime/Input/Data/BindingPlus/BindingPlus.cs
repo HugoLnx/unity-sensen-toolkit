@@ -43,7 +43,7 @@ namespace SensenToolkit.InputRebinding.Data
         // TODO: Use keyboardAndMouse group set in the service through the editor
         private bool? _isKeyboardAndMouse;
         public bool IsKeyboardAndMouse => _isKeyboardAndMouse ??= GroupsSet
-            .Contains(InputToolkitService.DEFAULT_KEYBOARD_AND_MOUSE_GROUP);
+            .Contains(InputToolkitService.BindingGroupKeyboardAndMouse);
 
         public bool IsCustomBinding => IsComposite
             ? CompositeChildren.Any(child => child.IsCustomBinding)

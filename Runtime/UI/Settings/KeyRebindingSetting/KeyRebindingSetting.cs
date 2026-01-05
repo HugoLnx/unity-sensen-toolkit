@@ -54,8 +54,6 @@ namespace SensenToolkit
         [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
         private KeyRebindingOverlay _overlay;
 
-        private InputToolkitService InputToolkit => InputToolkitService.Instance;
-
         private bool _performingAction;
         private InputAction _testAction = null;
         private HashSet<string> _hoveredBindings = new();
@@ -80,16 +78,19 @@ namespace SensenToolkit
         {
             _originalAction = _actionReference.OriginalActionClone();
 
-            if (InputToolkit != null)
-            {
-                InputToolkit.BindActionCollection(SetActionCollection);
-            }
             _visibility.OnShow += OnShow;
             _visibility.OnHidden += OnHidden;
-            _rebindingProcessor = new KeyListeningMetadataProcessor(InputToolkit);
+            _rebindingProcessor = new KeyListeningMetadataProcessor(
+                keyboardAndMouseGroup: InputToolkitService.BindingGroupKeyboardAndMouse,
+                gamepadGroup: InputToolkitService.BindingGroupGamepad
+            );
             _keyListener = new KeyListener(
                 cancelThroughEscape: _cancelThroughEscape,
                 ignoreBindingPaths: IgnoredBindingPaths
+            );
+            InputToolkitService.AddAssignListener(this,
+                assign: (s) => s.BindActionCollection(SetActionCollection),
+                unassign: (s) => s.UnbindActionCollection(SetActionCollection)
             );
         }
 
@@ -102,12 +103,23 @@ namespace SensenToolkit
             RefreshIfVisible();
         }
 
+        private void OnEnable()
+        {
+            KeyRebindingService.AddAssignListener(this,
+                forceInstance: false,
+                assign: (s) => KeyRebindingService.Instance.OnRebindsLoaded += RefreshIfVisible,
+                unassign: (s) => KeyRebindingService.Instance.OnRebindsLoaded -= RefreshIfVisible
+            );
+        }
+
+        private void OnDisable()
+        {
+            KeyRebindingService.UnassignAndRemoveListener(this);
+        }
+
         private void OnDestroy()
         {
-            if (InputToolkitService.HasInstance)
-            {
-                InputToolkit.UnbindActionCollection(SetActionCollection);
-            }
+            InputToolkitService.UnassignAndRemoveListener(this);
             _visibility.OnShow -= OnShow;
             _visibility.OnHidden -= OnHidden;
             DisposeTestAction();

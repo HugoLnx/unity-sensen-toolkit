@@ -15,6 +15,8 @@ namespace SensenToolkit
 
         private string _serializedDebug;
 
+        public event Action OnRebindsLoaded = delegate { };
+
         private void OnEnable()
         {
             InputToolkit.BindActionCollection(SetActionCollection);
@@ -39,7 +41,10 @@ namespace SensenToolkit
                 Debug.LogWarning("[KeyRebindingService] Provided Serialized is null or empty.");
                 return false;
             }
-            return Serializer.LoadSerializedJson(serialized);
+            bool success = Serializer.LoadSerializedJson(serialized);
+            OnRebindsLoaded.Invoke();
+
+            return success;
         }
 
         public void ResetToDefaults()
@@ -48,6 +53,7 @@ namespace SensenToolkit
                 source: InputToolkit.OriginalActions,
                 target: InputToolkit.Actions
             );
+            OnRebindsLoaded.Invoke();
         }
 
         [Button]

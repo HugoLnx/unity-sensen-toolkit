@@ -14,11 +14,13 @@ namespace SensenToolkit.InputRebinding.Internal
 
     public class KeyListeningMetadataProcessor
     {
-        private InputToolkitService _inputToolkit;
+        private string _keyboardAndMouseGroup;
+        private string _gamepadGroup;
 
-        public KeyListeningMetadataProcessor(InputToolkitService inputToolkit)
+        public KeyListeningMetadataProcessor(string keyboardAndMouseGroup, string gamepadGroup)
         {
-            _inputToolkit = inputToolkit;
+            _keyboardAndMouseGroup = keyboardAndMouseGroup;
+            _gamepadGroup = gamepadGroup;
         }
 
         public KeyListeningMetadata ProcessKeyListeningResult(KeyListeningResult result)
@@ -35,8 +37,8 @@ namespace SensenToolkit.InputRebinding.Internal
             }
             bool isKeyboardAndMouse = device is Keyboard || device is Mouse;
             string mainGroup = isKeyboardAndMouse
-                ? _inputToolkit.BindingGroupKeyboardAndMouse
-                : _inputToolkit.BindingGroupGamepad;
+                ? _keyboardAndMouseGroup
+                : _gamepadGroup;
             bool isKnownStandardGamepad = InputUtils.IsKnownStandardGamepadPath(newPath);
             bool isKnownDevice = isKeyboardAndMouse || isKnownStandardGamepad;
             string unknownDeviceGroup = isKnownDevice ? null : InputDeviceUtils.GenerateId(device);
