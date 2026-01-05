@@ -35,7 +35,7 @@ namespace SensenToolkit
         public event ExtraValueChangedHandler OnValueChangedExtra = delegate { };
         public event Action<Tso> OnValueChanged = delegate { };
 
-        private const bool ACTIVATE_LOGGER = true;
+        private const bool ACTIVATE_LOGGER = false;
         private Logx _logger;
         private Logx Logger => _logger ??= Logx.GetLogger(typeof(Tso).Name, ACTIVATE_LOGGER);
 
