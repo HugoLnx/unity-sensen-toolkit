@@ -1,5 +1,6 @@
 #if DOTWEEN
 using System;
+using System.Diagnostics;
 using DG.Tweening;
 using EasyButtons;
 using MyBox;
@@ -23,6 +24,8 @@ namespace SensenToolkit
         private const float FAST_SHOW_DURATION = 0.25f;
         private const float FAST_HIDE_DURATION = 0.15f;
 
+        private const bool DEBUG_ALL = false;
+        [SerializeField] private bool _debug = false;
         [field: SerializeField] public bool EnableBackSfx { get; private set; } = true;
         [SerializeField] private bool _autoPushToStack = false;
         [SerializeField] private bool _hideOnAwake = true;
@@ -35,8 +38,14 @@ namespace SensenToolkit
         [Tooltip("CanvasGroup will not be interactable when this is hidden.")]
         [SerializeField] private bool _controlGroupInteractivity = true;
         [SerializeField, AutoProperty] private CanvasGroup _canvasGroup;
+        [SerializeField, AutoProperty(AutoPropertyMode.Parent, allowEmpty: true, predicateMethodName: nameof(IsNotMyself))]
+        private PanelFadable _parentPanel;
+
         [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
         private PanelsService _panelsService;
+
+        private Logx _logger;
+        private Logx Logger => _logger ??= Logx.GetLogger(nameof(PanelFadable), true);
 
         private CanvasGroup _dominantCanvasGroup;
         public CanvasGroup DominantCanvasGroup => _dominantCanvasGroup == null
@@ -58,11 +67,29 @@ namespace SensenToolkit
         private void Awake()
         {
             if (_hideOnAwake) SetVisibilityTo(false);
+            if (_parentPanel != null)
+            {
+                if (_parentPanel == this)
+                {
+                    throw new InvalidOperationException("PanelFadable cannot be its own parent.");
+                }
+                _parentPanel.OnPrepareToShow += ParentPanel_OnPrepareToShow;
+                _parentPanel.OnShown += ParentPanel_OnShown;
+                _parentPanel.OnPrepareToHide += ParentPanel_OnPrepareToHide;
+                _parentPanel.OnHidden += ParentPanel_OnHidden;
+            }
         }
 
         private void OnDisable()
         {
             Tweenx.KillAndNullify(ref _tween);
+            if (_parentPanel != null)
+            {
+                _parentPanel.OnPrepareToShow -= ParentPanel_OnPrepareToShow;
+                _parentPanel.OnShown -= ParentPanel_OnShown;
+                _parentPanel.OnPrepareToHide -= ParentPanel_OnPrepareToHide;
+                _parentPanel.OnHidden -= ParentPanel_OnHidden;
+            }
             SetVisibilityTo(false);
         }
 
@@ -137,34 +164,54 @@ namespace SensenToolkit
 
         private void PrepareToShow()
         {
+            LogInfo($"{nameof(PrepareToShow)} called.");
             Tweenx.KillAndNullify(ref _tween);
             SetVisibilityTo(true);
             SwitchInteractivityTo(false);
-            OnPrepareToShow.Invoke(this);
+            if (_parentPanel == null || _parentPanel.IsVisible)
+            {
+                LogInfo($"Invoke:{nameof(OnPrepareToShow)}");
+                OnPrepareToShow.Invoke(this);
+            }
         }
 
         private void FinishShow()
         {
+            LogInfo($"{nameof(FinishShow)} called.");
             SwitchInteractivityTo(true);
             _canvasGroup.alpha = 1f;
             if (_autoPushToStack && _panelsService != null)
             {
                 _panelsService.PushTop(this);
             }
-            OnShown.Invoke(this);
+            if (_parentPanel == null || _parentPanel.IsVisible)
+            {
+                LogInfo($"Invoke:{nameof(OnShown)}");
+                OnShown.Invoke(this);
+            }
         }
 
         private void PrepareToHide()
         {
+            LogInfo($"{nameof(PrepareToHide)} called.");
             Tweenx.KillAndNullify(ref _tween);
             SwitchInteractivityTo(false);
-            OnPrepareToHide.Invoke(this);
+            if (_parentPanel == null || _parentPanel.IsVisible)
+            {
+                LogInfo($"Invoke:{nameof(OnPrepareToHide)}");
+                OnPrepareToHide.Invoke(this);
+            }
         }
 
         private void FinishHide()
         {
+            LogInfo($"{nameof(FinishHide)} called.");
             SetVisibilityTo(false);
-            OnHidden.Invoke(this);
+            if (_parentPanel == null || _parentPanel.IsVisible)
+            {
+                LogInfo($"Invoke:{nameof(OnHidden)}");
+                OnHidden.Invoke(this);
+            }
         }
 
         private void SwitchInteractivityTo(bool turnOn)
@@ -208,6 +255,52 @@ namespace SensenToolkit
                 PanelFadableSpeed.Custom => _showDurationCustom,
                 _ => throw new ArgumentOutOfRangeException(nameof(_speedType), _speedType, "Invalid speed type for showing panel.")
             };
+        }
+
+        private void ParentPanel_OnPrepareToShow(PanelFadable fadable)
+        {
+            if (IsFullyVisible)
+            {
+                LogInfo($"Invoke:{nameof(OnPrepareToShow)} (through parent)");
+                OnPrepareToShow.Invoke(this);
+            }
+        }
+
+        private void ParentPanel_OnShown(PanelFadable fadable)
+        {
+            if (IsFullyVisible)
+            {
+                LogInfo($"Invoke:{nameof(OnShown)} (through parent)");
+                OnShown.Invoke(this);
+            }
+        }
+
+        private void ParentPanel_OnPrepareToHide(PanelFadable fadable)
+        {
+            if (IsFullyVisible)
+            {
+                LogInfo($"Invoke:{nameof(OnPrepareToHide)} (through parent)");
+                OnPrepareToHide.Invoke(this);
+            }
+        }
+
+        private void ParentPanel_OnHidden(PanelFadable fadable)
+        {
+            if (IsFullyVisible)
+            {
+                LogInfo($"Invoke:{nameof(OnHidden)} (through parent)");
+                OnHidden.Invoke(this);
+            }
+        }
+
+        private bool IsNotMyself(UnityEngine.Object obj) => obj != null && this != obj as PanelFadable;
+
+        [Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]
+        private void LogInfo(string msg)
+        {
+            bool isDebugging = DEBUG_ALL || _debug;
+            if (!isDebugging) return;
+            Logger.Info(msg, category: this.NameWithParent());
         }
     }
 }
