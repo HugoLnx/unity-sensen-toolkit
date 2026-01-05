@@ -13,5 +13,13 @@ namespace SensenToolkit
             result = component.GetComponentInParent<T>(includeInactive);
             return result != null;
         }
+
+        public static string NameWithParent(this Component component)
+        {
+            Transform parent = component.transform.parent;
+            return parent == null
+                ? component.name
+                : $"{parent.name}/{component.name}";
+        }
     }
 }

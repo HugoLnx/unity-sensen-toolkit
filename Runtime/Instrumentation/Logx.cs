@@ -53,7 +53,7 @@ namespace SensenToolkit
         }
 
         [Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]
-        public void Info(object message, string loggerName = null)
+        public void Info(object message, string loggerName = null, string category = null)
         {
             int loggerId;
             if (string.IsNullOrEmpty(loggerName))
@@ -66,6 +66,10 @@ namespace SensenToolkit
                 loggerId = loggerName.GetHashCode();
             }
             if (!s_activeLoggers.Contains(loggerId)) return;
+            if (!string.IsNullOrEmpty(category))
+            {
+                loggerName = $"{loggerName}:{category}";
+            }
             UnityEngine.Debug.Log($"[{loggerName}] {message}");
         }
 
