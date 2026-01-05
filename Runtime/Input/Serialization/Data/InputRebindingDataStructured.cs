@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SensenToolkit.InputRebinding.Data;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
+using UnityEngine.UIElements;
 
 namespace SensenToolkit.InputRebinding.Internal
 {
@@ -14,6 +15,7 @@ namespace SensenToolkit.InputRebinding.Internal
         public readonly BindingPlusCollection BindingAdditions;
         public IReadOnlyDictionary<string, HashSet<string>> DeletedBindingsByActionKey { get; private set; }
         public IReadOnlyDictionary<string, BindingPlusCollection> AdditionBindingsByActionKey { get; private set; }
+        public bool HasRebindings => BindingDeletions.Count > 0 || BindingAdditions.Count > 0;
 
         public InputRebindingDataStructured(
             IReadOnlyList<InputActionMap> actionMaps,

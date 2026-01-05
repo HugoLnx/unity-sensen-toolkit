@@ -21,6 +21,9 @@ namespace SensenToolkit
             IInputActionCollection2 originalActions
         )
         {
+            Assertx.IsNotNull(actions, $"[InputRebindingSerializer] Actions cannot be null.");
+            Assertx.IsNotNull(originalActions, $"[InputRebindingSerializer] OriginalActions cannot be null.");
+
             _actions = actions;
             _originalActions = originalActions;
 
@@ -29,6 +32,11 @@ namespace SensenToolkit
         }
 
         public string Serialize(bool pretty = false)
+        {
+            return Serialize(out _, pretty);
+        }
+
+        public string Serialize(out bool hasRebindings, bool pretty = false)
         {
             RecreateCurrentData();
 
@@ -62,14 +70,28 @@ namespace SensenToolkit
                     .ToList(),
             };
 
-            return JsonUtility.ToJson(jsonData, pretty);
+            string json = JsonUtility.ToJson(jsonData, pretty);
+
+            hasRebindings = deletions.Count > 0 || additions.Count > 0;
+
+            return json;
         }
 
         public bool LoadSerializedJson(string serializedJson)
         {
+            if (string.IsNullOrWhiteSpace(serializedJson)) return false;
             RecreateCurrentData();
             InputRebindingDataStructured data = ParseJsonAndStructureData(serializedJson);
             if (data == null) return false;
+
+            if (!data.HasRebindings)
+            {
+                InputUtils.ReplaceBindings(
+                    source: _originalActions,
+                    target: _actions
+                );
+                return true;
+            }
 
             foreach (InputAction action in _actions)
             {
@@ -176,10 +198,19 @@ namespace SensenToolkit
         }
         private InputRebindingDataStructured ParseJsonAndStructureData(string serializedJson)
         {
-            InputRebindingJsonData jsonData = JsonUtility.FromJson<InputRebindingJsonData>(serializedJson);
-            if (jsonData == null || jsonData.IsEmpty) return null;
+            try
+            {
+                InputRebindingJsonData jsonData = JsonUtility.FromJson<InputRebindingJsonData>(serializedJson);
+                if (jsonData == null || jsonData.IsEmpty) return null;
 
-            return InputRebindingDataStructured.BuildFromJsonData(jsonData);
+                return InputRebindingDataStructured.BuildFromJsonData(jsonData);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Failed to parse rebinding JSON data...");
+                Debug.LogWarning(ex);
+                return null;
+            }
         }
 
         private void RecreateCurrentData()

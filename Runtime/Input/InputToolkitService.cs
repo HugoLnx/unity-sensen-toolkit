@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 namespace SensenToolkit
 {
-    public class InputToolkitService : ATransientSingleton<InputToolkitService>
+    public class InputToolkitService : APermanentSingleton<InputToolkitService>
     {
         public const string DEFAULT_KEYBOARD_AND_MOUSE_GROUP = "KeyboardAndMouse";
         public const string DEFAULT_GAMEPAD_GROUP = "Gamepad";
@@ -22,7 +22,10 @@ namespace SensenToolkit
         };
 
         private IInputActionCollection2 _actions;
+        private IInputActionCollection2 _originalActions;
+
         public IInputActionCollection2 Actions => _actions;
+        public IInputActionCollection2 OriginalActions => _originalActions;
         private event Action<IInputActionCollection2> OnActionsChanged;
 
         public void BindActionCollection(Action<IInputActionCollection2> setActions)
@@ -39,10 +42,11 @@ namespace SensenToolkit
             OnActionsChanged -= setActions;
         }
 
-        public void SetActions(IInputActionCollection2 actions)
+        public void SetActions(IInputActionCollection2 actions, IInputActionCollection2 originalActions = null)
         {
             IInputActionCollection2 oldActions = _actions;
             _actions = actions;
+            _originalActions = originalActions;
             if (oldActions != actions)
             {
                 OnActionsChanged?.Invoke(_actions);

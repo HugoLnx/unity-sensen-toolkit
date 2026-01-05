@@ -52,10 +52,9 @@ namespace SensenToolkit
         private PanelChildVisibilityEvents _visibility;
 
         [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
-        private InputToolkitService _inputToolkit;
-
-        [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
         private KeyRebindingOverlay _overlay;
+
+        private InputToolkitService InputToolkit => InputToolkitService.Instance;
 
         private bool _performingAction;
         private InputAction _testAction = null;
@@ -69,7 +68,7 @@ namespace SensenToolkit
         private HashSet<string> _blockedDeletionsSet;
         private HashSet<string> BlockedDeletionsSet => _blockedDeletionsSet ??= new(EnumerateBlockedDeletionsSet());
 
-        private List<string> _ignoredBindingPaths;
+        [NonSerialized] private List<string> _ignoredBindingPaths;
         private List<string> IgnoredBindingPaths => _ignoredBindingPaths ??= new(EnumerateIgnoredBindingPaths());
 
         public bool IsVisible => _visibility.IsVisible;
@@ -81,13 +80,13 @@ namespace SensenToolkit
         {
             _originalAction = _actionReference.OriginalActionClone();
 
-            if (_inputToolkit != null)
+            if (InputToolkit != null)
             {
-                _inputToolkit.BindActionCollection(SetActionCollection);
+                InputToolkit.BindActionCollection(SetActionCollection);
             }
             _visibility.OnShow += OnShow;
             _visibility.OnHidden += OnHidden;
-            _rebindingProcessor = new KeyListeningMetadataProcessor(_inputToolkit);
+            _rebindingProcessor = new KeyListeningMetadataProcessor(InputToolkit);
             _keyListener = new KeyListener(
                 cancelThroughEscape: _cancelThroughEscape,
                 ignoreBindingPaths: IgnoredBindingPaths
@@ -105,9 +104,9 @@ namespace SensenToolkit
 
         private void OnDestroy()
         {
-            if (_inputToolkit != null)
+            if (InputToolkitService.HasInstance)
             {
-                _inputToolkit.UnbindActionCollection(SetActionCollection);
+                InputToolkit.UnbindActionCollection(SetActionCollection);
             }
             _visibility.OnShow -= OnShow;
             _visibility.OnHidden -= OnHidden;

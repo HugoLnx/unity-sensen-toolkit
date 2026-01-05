@@ -4,6 +4,7 @@ using System.Linq;
 using SensenToolkit.InputRebinding.Data;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
 
 namespace SensenToolkit
 {
@@ -116,6 +117,27 @@ namespace SensenToolkit
             // <Joystick>/Trigger has different trigger button on different joystick models
             bool isStandardizedJoystickPath = !pathComponents.Control.Equals("trigger", StringComparison.OrdinalIgnoreCase);
             return isStandardizedJoystickPath;
+        }
+
+        public static void ReplaceBindings(
+            IInputActionCollection2 source,
+            IInputActionCollection2 target
+        )
+        {
+            foreach (InputAction targetAction in target)
+            {
+                string actionKey = GenerateActionKey(targetAction);
+                InputAction sourceAction = source.FindAction(actionKey, true);
+                EnsureActionDisabled(targetAction, () =>
+                {
+                    RemoveAllBindings(targetAction);
+                    ReadOnlyArray<InputBinding> sourceBindings = sourceAction.bindings;
+                    for (int i = 0; i < sourceBindings.Count; i++)
+                    {
+                        AddNextBindingsToAction(targetAction, sourceBindings, ref i);
+                    }
+                });
+            }
         }
     }
 }

@@ -15,6 +15,7 @@ namespace SensenToolkit
 
         [SerializeField, AutoProperty(AutoPropertyMode.Scene)]
         private PostprocessingService _pp;
+        private PostprocessingService PostService => RefreshPostProcessingService();
         [SerializeField, MustBeAssigned] private Material _fullscreenMaterial;
 
         public float Brightness { get => _brightness; set => SetBrightness(value); }
@@ -23,24 +24,24 @@ namespace SensenToolkit
 
         private void OnEnable()
         {
-            PostprocessingService.AddAssignListener(OnNewPostProcessingService);
+            PostprocessingService.AddAssignListener(this,
+                forceInstance: true,
+                assign: (service) =>
+                {
+                    _pp = service;
+                    RefreshAllEffects();
+                }
+            );
         }
 
-        protected override void OnDisableSingleton()
+        protected override void OnDisableAny()
         {
-            PostprocessingService.RemoveAssignListener(OnNewPostProcessingService);
-        }
-
-        private void OnNewPostProcessingService(PostprocessingService service)
-        {
-            if (service == null) return;
-            _pp = service;
-            RefreshAllEffects();
+            PostprocessingService.UnassignAndRemoveListener(this);
         }
 
         private void OnValidate()
         {
-            RefreshPostProcessingService();
+            if (Application.isPlaying) return;
             RefreshAllEffects();
         }
 
@@ -65,10 +66,10 @@ namespace SensenToolkit
         private void RefreshGamma()
         {
             RefreshPostProcessingService();
-            if (_pp == null) return;
+            if (PostService == null) return;
             _gamma = Mathf.Clamp(_gamma, -1f, 1f);
             bool isActive = _gamma >= 0.01f || _gamma <= -0.01f;
-            LiftGammaGain gammaObj = _pp.LiftGammaGain;
+            LiftGammaGain gammaObj = PostService.LiftGammaGain;
             gammaObj.active = isActive;
             if (!isActive) return;
 
@@ -91,14 +92,13 @@ namespace SensenToolkit
             _fullscreenMaterial.SetFloat(_contrastPropertyId, val);
         }
 
-        private void RefreshPostProcessingService()
+        private PostprocessingService RefreshPostProcessingService()
         {
-            if (!Application.isPlaying)
-            {
-                _pp = FindFirstObjectByType<PostprocessingService>();
-                return;
-            }
-            _pp = PostprocessingService.Instance;
+            if (_pp != null) return _pp;
+            _pp = Application.isPlaying
+                ? PostprocessingService.Instance
+                : FindFirstObjectByType<PostprocessingService>();
+            return _pp;
         }
 
         private void RefreshAllEffects()

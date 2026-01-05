@@ -16,7 +16,6 @@ namespace SensenToolkit
         [Tooltip("If true, automatically bind 'pause' key shortcuts (P, Escape).")]
         [SerializeField] private bool _autobindKeyShortcuts = true;
         [SerializeField, ReadOnly] private bool _isPaused = false;
-        [SerializeField, AutoProperty(AutoPropertyMode.Scene, allowEmpty: true)]
         private InputToolkitService _inputToolkit;
         private bool? _lastIsPaused = null;
         private MultiHolderHub _blockHolders;
@@ -35,10 +34,18 @@ namespace SensenToolkit
             _pauseAction.OnBindingRemove += action => action.performed -= OnPauseActionPerformed;
             _unpauseAction.OnBindingAdd += action => action.performed += OnUnpauseActionPerformed;
             _unpauseAction.OnBindingRemove += action => action.performed -= OnUnpauseActionPerformed;
-            if (_inputToolkit != null)
-            {
-                _inputToolkit.BindActionCollection(SetActionCollection);
-            }
+            InputToolkitService.AddAssignListener(this,
+                forceInstance: false,
+                assign: (s) =>
+                {
+                    _inputToolkit = s;
+                    s.BindActionCollection(SetActionCollection);
+                },
+                unassign: (s) =>
+                {
+                    s.UnbindActionCollection(SetActionCollection);
+                }
+            );
         }
 
         private void OnEnable()
@@ -61,10 +68,7 @@ namespace SensenToolkit
         protected override void OnDestroyAny()
         {
             base.OnDestroyAny();
-            if (_inputToolkit != null)
-            {
-                _inputToolkit.UnbindActionCollection(SetActionCollection);
-            }
+            InputToolkitService.UnassignAndRemoveListener(this);
         }
 
         public void SetActionCollection(IInputActionCollection2 actions)
