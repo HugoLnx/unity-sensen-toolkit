@@ -66,6 +66,8 @@ namespace SensenToolkit
         public static bool IsAppQuitting { get; private set; }
         public static bool IsScenesBatchLoading { get; private set; }
         public static bool IsScenesBatchUnloading { get; private set; }
+        private static bool s_rawIsRuntime = false;
+        public static bool IsRuntime => Application.isPlaying && s_rawIsRuntime;
         public static IReadOnlyCollection<Scene> ActiveScenes => s_activeScenes;
 
         [SerializeField] private Transform _callbacksContainer;
@@ -156,6 +158,7 @@ namespace SensenToolkit
             IsAppQuitting = false;
             IsScenesBatchLoading = false;
             IsScenesBatchUnloading = false;
+            s_rawIsRuntime = true;
 
             OnScenesBatchLoadStart += () =>
             {
@@ -444,6 +447,7 @@ namespace SensenToolkit
                     OnAppQuittingEnd.Invoke();
 
                     ExecuteObjectsCleanup(objBeingDestroyed);
+                    s_rawIsRuntime = false;
                 }
             }
         }
@@ -453,7 +457,11 @@ namespace SensenToolkit
             GameObject[] allObjects = FindObjectsByType<GameObject>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             int countNulls = 0;
+            int countFails = 0;
+            int countSuccesses = 0;
+            int countSkips = 0;
             List<string> destroyedObjectDescriptions = new();
+            List<string> skippedObjectDescriptions = new();
             foreach (GameObject obj in allObjects)
             {
                 if (obj == null)
@@ -461,26 +469,39 @@ namespace SensenToolkit
                     countNulls++;
                     continue;
                 }
-                if (objBeingDestroyed != null && obj == objBeingDestroyed)
+                string objDescription = $"'{obj.name}' {Scenex.DescribeScene(obj.scene)}";
+                bool isObjBeingDestroyed = objBeingDestroyed != null && obj == objBeingDestroyed;
+                bool isInactive = !obj.activeSelf || !obj.activeInHierarchy;
+                if (isObjBeingDestroyed || isInactive)
                 {
-                    // Skipping because it'll be destroyed anyway
+                    objDescription += " IsInactiveSelf".If(!obj.activeSelf);
+                    objDescription += " IsInactiveInHierarchy".If(!obj.activeInHierarchy);
+                    objDescription += " IsCurrentDestroyed".If(isObjBeingDestroyed);
+                    skippedObjectDescriptions.Add(objDescription);
+                    countSkips++;
                     continue;
                 }
-                string objDescription = $"'{obj.name}' {Scenex.DescribeScene(obj.scene)}";
                 destroyedObjectDescriptions.Add(objDescription);
                 try
                 {
                     DestroyImmediate(obj);
+                    countSuccesses++;
                 }
                 catch (Exception ex)
                 {
-                    LogInfo($"Object Cleanup FAILED: {objDescription}: {ex}");
+                    Debug.Log($"[AppCore:Cleanup] Object Cleanup FAILED: {objDescription}: {ex}");
+                    countFails++;
                 }
             }
 
-            LogInfo($"All Objects Cleanup ENDED: Destroyed {destroyedObjectDescriptions.Count} objects."
+            Debug.Log($"[AppCore:Cleanup] All Objects Cleanup ENDED: Detected {allObjects.Length} objects."
+                + $"\n{countSuccesses} objects destroyed successfully."
+                + $"\n{countFails} objects failed to be destroyed."
+                + $"\n{countSkips} objects skipped."
                 + $"\n{countNulls} null references found."
-                + $"\nDestroyed Objects:\n- {string.Join("\n- ", destroyedObjectDescriptions)}");
+            );
+            Debug.Log($"[AppCore:Cleanup] Skipped Objects ({countSkips}):\n- {string.Join("\n- ", skippedObjectDescriptions)}");
+            Debug.Log($"[AppCore:Cleanup] Destroyed Objects ({countSuccesses}):\n- {string.Join("\n- ", destroyedObjectDescriptions)}");
         }
 
         [Button]

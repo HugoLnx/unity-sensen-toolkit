@@ -30,14 +30,15 @@ namespace SensenToolkit
 
         public override object ValueAsObject => Value;
         public override string Name => _name;
+        private static bool IsRuntime => AppCore.IsRuntime;
+
+        private const bool ACTIVATE_LOGGER = false;
+        [NonSerialized] private Logx _logger;
+        private Logx Logger => _logger ??= Logx.GetLogger(typeof(Tso).Name, ACTIVATE_LOGGER);
 
         public delegate void ExtraValueChangedHandler(Tso source, Tvalue newValue, Tvalue oldValue);
         public event ExtraValueChangedHandler OnValueChangedExtra = delegate { };
         public event Action<Tso> OnValueChanged = delegate { };
-
-        private const bool ACTIVATE_LOGGER = false;
-        private Logx _logger;
-        private Logx Logger => _logger ??= Logx.GetLogger(typeof(Tso).Name, ACTIVATE_LOGGER);
 
         protected void OnAppBoot()
         {
@@ -62,6 +63,7 @@ namespace SensenToolkit
             TryChange();
         }
 
+#if UNITY_EDITOR
         protected void OnEnable()
         {
             TryInitializeInEditor();
@@ -69,8 +71,10 @@ namespace SensenToolkit
 
         protected void OnValidate()
         {
+            Logger.Info($"OnValidate called. {"isPlaying".If(Application.isPlaying)}{" isRuntime".If(IsRuntime)}");
             TryInitializeInEditor();
         }
+#endif
 
         public void AddSyncListener(Action<Tso> listener)
         {
@@ -106,13 +110,18 @@ namespace SensenToolkit
 
         private void SetValue(Tvalue setValue)
         {
-            Logger.Info("SetValue called.");
+            bool ignore = !IsRuntime;
+            Logger.Info($"SetValue called. {"(IGNORED)".If(ignore)}");
+            if (ignore) return;
             RawValue = setValue;
             TryChange();
         }
 
         private void TryChange()
         {
+            bool ignore = !IsRuntime;
+            Logger.Info($"TryChange called. {"(IGNORED)".If(ignore)}");
+            if (ignore) return;
             (bool hasPrevValue, Tvalue oldValue) = _prevValue;
             Tvalue newValue = Value;
 
@@ -136,7 +145,7 @@ namespace SensenToolkit
         private void TryInitializeInEditor()
         {
             if (
-                Application.isPlaying
+                IsRuntime
                 || (!_forceDefaultWhileEditing && _wasInitializedInEditor)
             ) return;
             Logger.Info("Initializing in editor.");
