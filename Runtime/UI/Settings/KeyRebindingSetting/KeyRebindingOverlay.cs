@@ -18,6 +18,7 @@ namespace SensenToolkit
         [SerializeField, MustBeAssigned] private FadableContent _content;
         [SerializeField, MustBeAssigned] private FadableContent _errorContent;
         [SerializeField, AutoProperty] private PanelFadable _panel;
+        private InputToolkitService InputToolkit => InputToolkitService.GetInstanceIfExists();
         private Coroutine _hideCoroutine;
 
         private void Start()
@@ -29,6 +30,7 @@ namespace SensenToolkit
 
         public void ShowListening(string actionName)
         {
+            if (InputToolkit != null) InputToolkit.PauseInput();
             _errorContent.InstantHide();
             ResetError();
             _content.ApplyWhenHidden(() =>
@@ -82,6 +84,7 @@ namespace SensenToolkit
 
         private void RawHideNow()
         {
+            if (InputToolkit != null) InputToolkit.ResumeInput();
             _panel.Hide();
         }
 

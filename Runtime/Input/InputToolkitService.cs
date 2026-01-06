@@ -19,6 +19,7 @@ namespace SensenToolkit
         [SerializeField] private string _keyboardAndMouseBindingGroup = DEFAULT_KEYBOARD_AND_MOUSE_GROUP;
         [SerializeField] private string _gamepadBindingGroup = DEFAULT_GAMEPAD_GROUP;
         private HashSet<string> _defaultBindingGroups;
+        private HashSet<string> _enabledActionsSnapshot = new();
 
         public string ConfigKeyboardAndMouseGroup => _keyboardAndMouseBindingGroup;
         public string ConfigGamepadGroup => _gamepadBindingGroup;
@@ -57,7 +58,39 @@ namespace SensenToolkit
             if (oldActions != actions)
             {
                 OnActionsChanged?.Invoke(_actions);
+                oldActions?.Disable();
             }
+        }
+
+        public void PauseInput()
+        {
+            if (_actions == null) return;
+
+            _enabledActionsSnapshot.Clear();
+            foreach (InputAction action in _actions)
+            {
+                if (action.enabled)
+                {
+                    string actionKey = InputUtils.GenerateActionKey(action);
+                    _enabledActionsSnapshot.Add(actionKey);
+                    action.Disable();
+                }
+            }
+        }
+
+        public void ResumeInput()
+        {
+            if (_actions == null) return;
+
+            foreach (InputAction action in _actions)
+            {
+                string actionKey = InputUtils.GenerateActionKey(action);
+                if (_enabledActionsSnapshot.Contains(actionKey))
+                {
+                    action.Enable();
+                }
+            }
+            _enabledActionsSnapshot.Clear();
         }
 
         private static string ResolveGroupGamepad()
