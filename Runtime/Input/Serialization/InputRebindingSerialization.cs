@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SensenToolkit.InputRebinding.Data;
@@ -37,6 +38,21 @@ namespace SensenToolkit
         }
 
         public string Serialize(out bool hasRebindings, bool pretty = false)
+        {
+            try
+            {
+                return UnsafeSerialize(out hasRebindings, pretty);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Failed to serialize rebinding data...");
+                Debug.LogWarning(ex);
+                hasRebindings = false;
+                return null;
+            }
+        }
+
+        public string UnsafeSerialize(out bool hasRebindings, bool pretty = false)
         {
             RecreateCurrentData();
 
@@ -79,12 +95,40 @@ namespace SensenToolkit
 
         public bool LoadSerializedJson(string serializedJson)
         {
+            try
+            {
+                return UnsafeLoadSerializedJson(serializedJson);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Failed to load rebinding JSON data...");
+                Debug.LogWarning(ex);
+                return false;
+            }
+        }
+
+        private bool UnsafeLoadSerializedJson(string serializedJson)
+        {
             if (string.IsNullOrWhiteSpace(serializedJson)) return false;
             RecreateCurrentData();
-            InputRebindingDataStructured data = ParseJsonAndStructureData(serializedJson);
+            InputRebindingDataStructured data = SafeParseJsonAndStructureData(serializedJson);
             if (data == null) return false;
 
-            if (!data.HasRebindings)
+            if (!data.HasRebindings) return SafeRecoverOriginalBindings();
+
+            foreach (InputAction action in _actions)
+            {
+                List<BindingPlus> newBindings = SafeCreateLoadedBindingsToReplaceInAction(action, data);
+                if (newBindings == null) continue;
+                SafeReplaceActionBindings(action, newBindings);
+            }
+
+            return true;
+        }
+
+        private bool SafeRecoverOriginalBindings()
+        {
+            try
             {
                 InputUtils.ReplaceBindings(
                     source: _originalActions,
@@ -92,26 +136,38 @@ namespace SensenToolkit
                 );
                 return true;
             }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Failed to recover original bindings...");
+                Debug.LogWarning(ex);
+                return false;
+            }
+        }
 
-            foreach (InputAction action in _actions)
+        private List<BindingPlus> SafeCreateLoadedBindingsToReplaceInAction(InputAction action, InputRebindingDataStructured data)
+        {
+            try
             {
                 string actionKey = InputUtils.GenerateActionKey(action);
                 InputAction originalAction = _originalActions.FindAction(actionKey);
                 if (originalAction == null)
                 {
-                    Debug.LogWarning($"Original action not found '{action.name}'");
-                    continue;
+                    Debug.LogWarning($"Original action not found '{actionKey}'");
+                    return null;
                 }
 
                 List<BindingPlus> newBindings = new();
                 newBindings.AddRange(SelectOriginalBindingsToReAdd(actionKey, data));
                 newBindings.AddRange(SelectCustomBindingsToAdd(actionKey, data));
-                BindingPlusCollection
-                    .Build(newBindings)
-                    .ReplaceActionBindings(action);
-            }
 
-            return true;
+                return newBindings;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Failed to create bindings to load for action '{action.name}'");
+                Debug.LogWarning(ex);
+                return null;
+            }
         }
 
         private List<BindingPlus> SelectOriginalBindingsToReAdd(string actionKey, InputRebindingDataStructured data)
@@ -176,6 +232,25 @@ namespace SensenToolkit
             return customBindings;
         }
 
+        private void SafeReplaceActionBindings(InputAction action, List<BindingPlus> newBindings)
+        {
+            BindingPlusCollection bindingsBackup = new BindingPlusCollectionBuilder()
+                .AddRange(action, action.bindings)
+                .Build();
+            try
+            {
+                BindingPlusCollection
+                    .Build(newBindings)
+                    .ReplaceActionBindings(action);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Failed to rebind action '{action.name}'. Reverting to previous bindings.");
+                Debug.LogWarning(ex);
+                bindingsBackup.ReplaceActionBindings(action);
+            }
+        }
+
         private HashSet<string> BuildOriginalGroupsSet()
         {
             HashSet<string> originalGroups = new();
@@ -196,7 +271,7 @@ namespace SensenToolkit
 
             return originalGroups;
         }
-        private InputRebindingDataStructured ParseJsonAndStructureData(string serializedJson)
+        private InputRebindingDataStructured SafeParseJsonAndStructureData(string serializedJson)
         {
             try
             {
