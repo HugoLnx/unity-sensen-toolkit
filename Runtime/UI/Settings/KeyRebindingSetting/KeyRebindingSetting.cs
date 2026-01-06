@@ -107,8 +107,8 @@ namespace SensenToolkit
         {
             KeyRebindingService.AddAssignListener(this,
                 forceInstance: false,
-                assign: (s) => KeyRebindingService.Instance.OnRebindsLoaded += RefreshIfVisible,
-                unassign: (s) => KeyRebindingService.Instance.OnRebindsLoaded -= RefreshIfVisible
+                assign: (s) => s.OnRebindsLoaded += RefreshIfVisible,
+                unassign: (s) => s.OnRebindsLoaded -= RefreshIfVisible
             );
         }
 
