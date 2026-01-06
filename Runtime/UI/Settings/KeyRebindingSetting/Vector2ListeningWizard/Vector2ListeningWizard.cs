@@ -24,6 +24,7 @@ namespace SensenToolkit.InputRebinding.Internal
         private KeyListener _keyListener;
         private KeyRebindingOverlay _overlay;
         private KeyListeningMetadataProcessor _rebindingProcessor;
+        private Func<Vector2WizardErrorCode, string> _getErrorMessage;
         private Func<string> _getActionHumanName;
         private Func<string, string> _getPartHumanName;
         private string _commonDeviceId;
@@ -35,6 +36,7 @@ namespace SensenToolkit.InputRebinding.Internal
             KeyListener keyListener,
             KeyRebindingOverlay overlay,
             KeyListeningMetadataProcessor rebindingProcessor,
+            System.Func<Vector2WizardErrorCode, string> getErrorMessage,
             System.Func<string> getActionName,
             System.Func<string, string> getPartHumanName
         )
@@ -43,6 +45,7 @@ namespace SensenToolkit.InputRebinding.Internal
             _keyListener = keyListener;
             _overlay = overlay;
             _rebindingProcessor = rebindingProcessor;
+            _getErrorMessage = getErrorMessage;
             _getActionHumanName = getActionName;
             _getPartHumanName = getPartHumanName;
         }
@@ -72,7 +75,6 @@ namespace SensenToolkit.InputRebinding.Internal
 
             TryCompositePartListeningResult latestTryResult = allTryResults[^1];
 
-            // TODO: Instead of returning AllResults, return a single BindingPlus for the composite
             Vector2ListeningWizardResult finalResult = new()
             {
                 NewBinding = CreateBindingFromTryResults(allTryResults),
@@ -170,14 +172,7 @@ namespace SensenToolkit.InputRebinding.Internal
         private void ShowErrorIfAny(Vector2WizardErrorCode? errorCode)
         {
             if (errorCode == null || errorCode == Vector2WizardErrorCode.None) return;
-            // TODO: Use localized messages
-            string message = errorCode switch
-            {
-                Vector2WizardErrorCode.Canceled => "Action rebinding canceled.",
-                Vector2WizardErrorCode.DifferentDevice => "Key/button doesn't belong to the same device as the previous key/button.",
-                Vector2WizardErrorCode.DuplicateBinding => "This key/button was used already.",
-                _ => "An unknown error occurred."
-            };
+            string message = _getErrorMessage(errorCode.Value);
             _overlay.ShowError(message);
         }
 

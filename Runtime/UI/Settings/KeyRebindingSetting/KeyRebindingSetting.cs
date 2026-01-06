@@ -270,6 +270,7 @@ namespace SensenToolkit
                 keyListener: _keyListener,
                 overlay: _overlay,
                 rebindingProcessor: _rebindingProcessor,
+                getErrorMessage: GetErrorMessage,
                 getActionName: GetActionHumanName,
                 getPartHumanName: GetPartHumanName
             );
@@ -283,6 +284,18 @@ namespace SensenToolkit
             }
 
             TryToAppendBinding(wizardResult.NewBinding);
+        }
+
+        private string GetErrorMessage(Vector2WizardErrorCode code)
+        {
+            KeyRebindingLocalizedTexts texts = KeyRebindingService.Instance.LocalizedTexts;
+            return code switch
+            {
+                Vector2WizardErrorCode.Canceled => texts.GetRebindingCanceledText(),
+                Vector2WizardErrorCode.DifferentDevice => texts.GetRebindingErrorDifferentDeviceText(),
+                Vector2WizardErrorCode.DuplicateBinding => texts.GetRebindingErrorDuplicateBindingText(),
+                _ => "An unknown error occurred."
+            };
         }
 
         private void TryToAppendBinding(BindingPlus newBinding)

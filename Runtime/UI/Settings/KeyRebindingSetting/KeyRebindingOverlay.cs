@@ -1,6 +1,8 @@
+using System;
 using MyBox;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Localization;
 
 namespace SensenToolkit
 {
@@ -9,12 +11,15 @@ namespace SensenToolkit
         [Header("Config")]
         [SerializeField] private Color _actionColor = Color.purple;
         [SerializeField] private string _actionSizeTagValue = "1.5em";
+        [Header("Localization")]
+        [SerializeField] private LocalizedString _listeningTextI18n;
 
         [Header("References")]
         [SerializeField, MustBeAssigned] private TMP_Text _listeningText;
         [SerializeField, MustBeAssigned] private TMP_Text _keyText;
         [SerializeField, MustBeAssigned] private AnimatedUIBlink _keyBlink;
         [SerializeField, MustBeAssigned] private TMP_Text _errorText;
+        [SerializeField, MustBeAssigned] private TMP_Text _infoCancelKeyText;
         [SerializeField, MustBeAssigned] private FadableContent _content;
         [SerializeField, MustBeAssigned] private FadableContent _errorContent;
         [SerializeField, AutoProperty] private PanelFadable _panel;
@@ -32,15 +37,23 @@ namespace SensenToolkit
         {
             if (InputToolkit != null) InputToolkit.PauseInput();
             _errorContent.InstantHide();
+            UpdateInfoCancelText();
             ResetError();
             _content.ApplyWhenHidden(() =>
             {
-                _listeningText.text = $"Listening key/button for <b><size={_actionSizeTagValue}><color={_actionColor.ToHex()}>{actionName}</color></size></b>";
+                string keyNameText = $"<b><size={_actionSizeTagValue}><color={_actionColor.ToHex()}>{actionName}</color></size></b>";
+                _listeningText.text = _listeningTextI18n.GetLocalizedString(keyNameText);
                 UpdateKeyName(null);
             });
             if (_panel.IsVisible) _content.HideAndReshowFading();
             else _content.InstantShow();
             _panel.Show();
+        }
+
+        private void UpdateInfoCancelText()
+        {
+            KeyRebindingLocalizedTexts texts = KeyRebindingService.Instance.LocalizedTexts;
+            _infoCancelKeyText.text = $"({texts.GetRebindingPressToCancelText("Esc")})";
         }
 
         public void UpdateKeyName(string text)
@@ -61,7 +74,7 @@ namespace SensenToolkit
         {
             _errorContent.ApplyWhenHidden(() =>
             {
-                _errorText.text = $"Error: {errorMessage}";
+                _errorText.text = errorMessage;
             });
             _errorContent.HideAndReshowFading();
         }

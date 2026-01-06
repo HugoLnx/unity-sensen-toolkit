@@ -1,13 +1,31 @@
 using System;
 using EasyButtons;
+using MyBox;
 using SensenToolkit;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Localization;
 
 namespace SensenToolkit
 {
+    [Serializable]
+    public class KeyRebindingLocalizedTexts
+    {
+        [SerializeField, MustBeAssigned] private LocalizedString _rebindingCanceled;
+        [SerializeField, MustBeAssigned] private LocalizedString _rebindingErrorDifferentDevice;
+        [SerializeField, MustBeAssigned] private LocalizedString _rebindingErrorDuplicateBinding;
+        [SerializeField, MustBeAssigned] private LocalizedString _rebindingPressToCancel;
+
+        public string GetRebindingCanceledText() => _rebindingCanceled.GetLocalizedString();
+        public string GetRebindingErrorDifferentDeviceText() => _rebindingErrorDifferentDevice.GetLocalizedString();
+        public string GetRebindingErrorDuplicateBindingText() => _rebindingErrorDuplicateBinding.GetLocalizedString();
+        public string GetRebindingPressToCancelText(string keyName) => _rebindingPressToCancel.GetLocalizedString(keyName);
+    }
+
     public class KeyRebindingService : APermanentSingleton<KeyRebindingService>
     {
+        [SerializeField] private KeyRebindingLocalizedTexts _localizedTexts;
+        public KeyRebindingLocalizedTexts LocalizedTexts => _localizedTexts;
         private InputToolkitService InputToolkit => InputToolkitService.Instance;
         private InputRebindingSerializer Serializer
             => _serializer ??= new InputRebindingSerializer(InputToolkit.Actions, InputToolkit.OriginalActions);
