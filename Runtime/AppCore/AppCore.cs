@@ -454,6 +454,18 @@ namespace SensenToolkit
 
         private static void ExecuteObjectsCleanup(GameObject objBeingDestroyed)
         {
+            try
+            {
+                UnsafeExecuteObjectsCleanup(objBeingDestroyed);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[AppCore:Cleanup] Exception during cleanup: {ex}");
+            }
+        }
+
+        private static void UnsafeExecuteObjectsCleanup(GameObject objBeingDestroyed)
+        {
             GameObject[] allObjects = FindObjectsByType<GameObject>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
             int countNulls = 0;
@@ -471,11 +483,10 @@ namespace SensenToolkit
                 }
                 string objDescription = $"'{obj.name}' {Scenex.DescribeScene(obj.scene)}";
                 bool isObjBeingDestroyed = objBeingDestroyed != null && obj == objBeingDestroyed;
-                bool isInactive = !obj.activeSelf || !obj.activeInHierarchy;
+                bool isInactive = !obj.activeInHierarchy;
                 if (isObjBeingDestroyed || isInactive)
                 {
-                    objDescription += " IsInactiveSelf".If(!obj.activeSelf);
-                    objDescription += " IsInactiveInHierarchy".If(!obj.activeInHierarchy);
+                    objDescription += " IsInactive".If(!obj.activeInHierarchy);
                     objDescription += " IsCurrentDestroyed".If(isObjBeingDestroyed);
                     skippedObjectDescriptions.Add(objDescription);
                     countSkips++;
@@ -489,7 +500,7 @@ namespace SensenToolkit
                 }
                 catch (Exception ex)
                 {
-                    Debug.Log($"[AppCore:Cleanup] Object Cleanup FAILED: {objDescription}: {ex}");
+                    Debug.LogWarning($"[AppCore:Cleanup] Object Cleanup FAILED: {objDescription}: {ex}");
                     countFails++;
                 }
             }
