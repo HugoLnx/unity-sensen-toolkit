@@ -109,10 +109,10 @@ namespace SensenToolkit
         }
         #endregion
 
-#if UNITY_EDITOR
         [SerializeField][ReadOnly] private bool _isSensingDebug;
         [SerializeField][ReadOnly] private List<string> _sensedDebug = new();
 
+#if UNITY_EDITOR
         private void Start()
         {
             OnSensedEnter += (_) => RefreshSensedDebug();

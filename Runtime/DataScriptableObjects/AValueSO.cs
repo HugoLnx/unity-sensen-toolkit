@@ -74,6 +74,18 @@ namespace SensenToolkit
             Logger.Info($"OnValidate called. {"isPlaying".If(Application.isPlaying)}{" isRuntime".If(IsRuntime)}");
             TryInitializeInEditor();
         }
+
+        private void TryInitializeInEditor()
+        {
+            if (
+                IsRuntime
+                || (!_forceDefaultWhileEditing && _wasInitializedInEditor)
+            ) return;
+            Logger.Info("Initializing in editor.");
+            _wasInitializedInEditor = true;
+            RawValue = _defaultValue;
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
 #endif
 
         public void AddSyncListener(Action<Tso> listener)
@@ -139,19 +151,6 @@ namespace SensenToolkit
             Tvalue val = Value;
             OnValueChangedExtra.Invoke(this as Tso, val, oldValue);
             OnValueChanged.Invoke(this as Tso);
-        }
-
-        [System.Diagnostics.Conditional("UNITY_EDITOR")]
-        private void TryInitializeInEditor()
-        {
-            if (
-                IsRuntime
-                || (!_forceDefaultWhileEditing && _wasInitializedInEditor)
-            ) return;
-            Logger.Info("Initializing in editor.");
-            _wasInitializedInEditor = true;
-            RawValue = _defaultValue;
-            UnityEditor.EditorUtility.SetDirty(this);
         }
 
         private Tvalue ResolveDefaultValue()

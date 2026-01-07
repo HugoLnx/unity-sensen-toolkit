@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using SensenToolkit.EnvInternal;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Build;
+#endif
 using UnityEngine;
 
 namespace SensenToolkit
@@ -61,12 +63,17 @@ namespace SensenToolkit
 
         public static IEnumerable<string> GetSymbols()
         {
+#if UNITY_EDITOR
             BuildTargetGroup buildTarget = EditorUserBuildSettings.selectedBuildTargetGroup;
             var namedBuildTarget = NamedBuildTarget.FromBuildTargetGroup(buildTarget);
             return PlayerSettings
                 .GetScriptingDefineSymbols(namedBuildTarget)
                 .Split(";")
                 .Where(s => !string.IsNullOrWhiteSpace(s));
+#else
+            // TODO: Solve it in other way
+            return new List<string>();
+#endif
         }
 
         private static string ResolveBuildLocaleCode()

@@ -1,4 +1,3 @@
-#if DOTWEEN
 using UnityEngine;
 
 namespace SensenToolkit
@@ -16,5 +15,3 @@ namespace SensenToolkit
         }
     }
 }
-#endif
-

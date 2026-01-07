@@ -1,4 +1,3 @@
-#if DOTWEEN
 using MyBox;
 using UnityEngine;
 
@@ -33,4 +32,3 @@ namespace SensenToolkit
         }
     }
 }
-#endif

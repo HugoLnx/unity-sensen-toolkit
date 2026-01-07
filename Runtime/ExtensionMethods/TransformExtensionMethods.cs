@@ -37,19 +37,19 @@ namespace SensenToolkit
             }
         }
 
-        public static string FullPath(this Transform transform)
-        {
-            List<string> fullPathList = new();
+        // public static string FullPath(this Transform transform)
+        // {
+        //     List<string> fullPathList = new();
 
-            Transform currentTransform = transform;
-            while (currentTransform != null)
-            {
-                fullPathList.Add(currentTransform.gameObject.name);
-                currentTransform = currentTransform.parent;
-            }
+        //     Transform currentTransform = transform;
+        //     while (currentTransform != null)
+        //     {
+        //         fullPathList.Add(currentTransform.gameObject.name);
+        //         currentTransform = currentTransform.parent;
+        //     }
 
-            fullPathList.Reverse();
-            return string.Join("/", fullPathList);
-        }
+        //     fullPathList.Reverse();
+        //     return string.Join("/", fullPathList);
+        // }
     }
 }

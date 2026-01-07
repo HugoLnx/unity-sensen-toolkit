@@ -19,10 +19,8 @@ namespace SensenToolkit
         [NonSerialized] private TStateId[] _allStateIds;
         public event Action<TStateId> OnStateChange;
 
-#if UNITY_EDITOR
         [Header("FSM Debug")]
         [field: SerializeField, ReadOnly] protected string CurrentStateName { get; private set; }
-#endif
 
         protected virtual void Awake()
         {

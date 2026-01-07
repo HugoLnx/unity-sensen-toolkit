@@ -31,6 +31,7 @@ namespace SensenToolkit
         [Button]
         public void RefreshIndex()
         {
+#if UNITY_EDITOR
             _all.Clear();
             foreach (string guid in AssetDatabase.FindAssets("t:ScriptableObject"))
             {
@@ -42,6 +43,7 @@ namespace SensenToolkit
                 }
             }
             EditorUtility.SetDirty(this);
+#endif
         }
     }
 }

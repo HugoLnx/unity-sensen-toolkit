@@ -21,5 +21,17 @@ namespace SensenToolkit
                 ? component.name
                 : $"{parent.name}/{component.name}";
         }
+
+        public static string FullPath(this Component component)
+        {
+            string path = component.name;
+            Transform current = component.transform.parent;
+            while (current != null)
+            {
+                path = current.name + "/" + path;
+                current = current.parent;
+            }
+            return path;
+        }
     }
 }
