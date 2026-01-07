@@ -69,11 +69,11 @@ namespace SensenToolkit
             TryInitializeInEditor();
         }
 
-        protected void OnValidate()
-        {
-            Logger.Info($"OnValidate called. {"isPlaying".If(Application.isPlaying)}{" isRuntime".If(IsRuntime)}");
-            TryInitializeInEditor();
-        }
+        // protected void OnValidate()
+        // {
+        //     Logger.Info($"OnValidate called. {"isPlaying".If(Application.isPlaying)}{" isRuntime".If(IsRuntime)}");
+        //     TryInitializeInEditor();
+        // }
 
         private void TryInitializeInEditor()
         {
