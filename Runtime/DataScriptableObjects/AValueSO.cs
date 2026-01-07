@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace SensenToolkit
 {
-    public abstract class AValueSO<Tvalue, Tso> : AValueSOBase, IScriptableCallbackSubscriber_OnBoot_Internal
+    public abstract class AValueSO<Tvalue, Tso> : AValueSOBase, IScriptableCallbackSubscriber_OnAppAwake_Internal
         where Tso : AValueSO<Tvalue, Tso>
     {
         [SerializeField, MustBeAssigned] private string _name = null;
@@ -32,7 +32,7 @@ namespace SensenToolkit
         public override string Name => _name;
         private static bool IsRuntime => AppCore.IsRuntime;
 
-        private const bool ACTIVATE_LOGGER = false;
+        private const bool ACTIVATE_LOGGER = true;
         [NonSerialized] private Logx _logger;
         private Logx Logger => _logger ??= Logx.GetLogger(typeof(Tso).Name, ACTIVATE_LOGGER);
 
@@ -156,6 +156,6 @@ namespace SensenToolkit
         private Tvalue ResolveDefaultValue()
             => _runtimeDefaultValue.IsSet ? _runtimeDefaultValue.Value : _defaultValue;
 
-        public void ScriptableCallback_OnBoot_Internal() => OnAppBoot();
+        public void ScriptableCallback_OnAppAwake_Internal() => OnAppBoot();
     }
 }

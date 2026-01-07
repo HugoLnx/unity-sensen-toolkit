@@ -37,13 +37,20 @@ namespace SensenToolkit.Internal
             );
         }
 
-        public static void BootAwake()
+        public static void AppAwake()
         {
-            CallStaticMethods<IAppCore_BootAwake_Internal>(
-                nameof(IAppCore_BootAwake_Internal.AppCore_BootAwake_Internal)
+            CallStaticMethods<IAppCore_AppAwake_Internal>(
+                nameof(IAppCore_AppAwake_Internal.AppCore_AppAwake_Internal)
             );
-            CallStaticMethods<IAppCore_BootAwake>(
-                nameof(IAppCore_BootAwake.AppCore_BootAwake)
+            CallStaticMethods<IAppCore_AppAwake>(
+                nameof(IAppCore_AppAwake.AppCore_AppAwake)
+            );
+        }
+
+        public static void AppQuit()
+        {
+            CallStaticMethods<IAppCore_AppQuit>(
+                nameof(IAppCore_AppQuit.AppCore_AppQuit)
             );
         }
 

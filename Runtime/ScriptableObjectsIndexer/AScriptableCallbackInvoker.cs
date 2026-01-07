@@ -7,6 +7,8 @@ namespace SensenToolkit.Internal
     public abstract class AScriptableCallbackInvoker<T> : AScriptableCallbackInvokerBase
     {
         public abstract void Invoke(T subscriber);
+        public override bool CanInvoke(ScriptableObject obj) => obj is T;
+
         public override bool TryInvoke(ScriptableObject obj)
         {
             if (obj is T subscriber)

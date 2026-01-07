@@ -356,7 +356,7 @@ namespace SensenToolkit
 
                 if (!IsAppBooted)
                 {
-                    StaticRuntimeCallbacks.BootAwake();
+                    StaticRuntimeCallbacks.AppAwake();
 
                     LogInfo($"Event:{nameof(OnAppBootingStart)}");
                     OnAppBootingStart.Invoke();
