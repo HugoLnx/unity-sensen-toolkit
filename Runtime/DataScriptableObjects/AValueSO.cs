@@ -32,7 +32,7 @@ namespace SensenToolkit
         public override string Name => _name;
         private static bool IsRuntime => AppCore.IsRuntime;
 
-        private const bool ACTIVATE_LOGGER = true;
+        private const bool ACTIVATE_LOGGER = false;
         [NonSerialized] private Logx _logger;
         private Logx Logger => _logger ??= Logx.GetLogger(typeof(Tso).Name, ACTIVATE_LOGGER);
 
