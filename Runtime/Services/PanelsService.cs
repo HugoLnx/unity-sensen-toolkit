@@ -24,6 +24,10 @@ namespace SensenToolkit
         private MultiHolderHub _focusHoldersHub;
         private MultiHolderHub FocusHoldersHub => _focusHoldersHub ??= CreateFocusHoldersHub();
 
+        private const bool ACTIVATE_LOGGER = false;
+        private Logx _logger;
+        private new Logx Logger => _logger ??= Logx.GetLogger(nameof(PanelsService), activate: ACTIVATE_LOGGER);
+
         public delegate void PanelBackEventHandler(PanelFadable previousTopPanel, PanelFadable topPanel);
         public event PanelBackEventHandler OnBack = delegate { };
         public event Action<bool> OnHoldingFocusChanged = delegate { };
@@ -69,22 +73,35 @@ namespace SensenToolkit
         {
             if (panel == null) return;
             _stack.Push(panel);
+            Logger.Info($"PushTop: {panel.NameWithParent()}, Stack Count: {_stack.Count}");
             panel.OnHidden += OnPanelHidden;
         }
 
         public void GoBack(PanelFadable currentPanel = null)
         {
-            if (currentPanel != null && _stack.Count > 0 && _stack.Peek() != currentPanel)
+            PanelFadable oldTopPanel = _stack.Count > 0 ? _stack.Peek() : null;
+            bool ignore = currentPanel != null && oldTopPanel != currentPanel;
+            if (ignore)
             {
+                Logger.Info($"GoBack: (ignored) currentPanel:{currentPanel} stackCount:{_stack.Count} topPanel:{oldTopPanel}");
                 return;
             }
             PanelFadable previousTopPanel = PopTop();
             PanelFadable topPanel = _stack.Count > 0 ? _stack.Peek() : null;
+            Logger.Info($"GoBack: previousTopPanel:{previousTopPanel} newTopPanel:{topPanel} stackCount:{_stack.Count}");
             OnBack.Invoke(previousTopPanel, topPanel);
         }
 
-        public void AddFocusHolder(PanelFadable panel) => FocusHoldersHub.Hold(panel);
-        public void RemoveFocusHolder(PanelFadable panel) => FocusHoldersHub.Release(panel);
+        public void AddFocusHolder(PanelFadable panel)
+        {
+            FocusHoldersHub.Hold(panel);
+            Logger.Info($"AddFocusHolder: {panel.NameWithParent()}, IsHoldingFocus: {IsHoldingFocus}");
+        }
+        public void RemoveFocusHolder(PanelFadable panel)
+        {
+            FocusHoldersHub.Release(panel);
+            Logger.Info($"RemoveFocusHolder: {panel.NameWithParent()}, IsHoldingFocus: {IsHoldingFocus}");
+        }
 
         public void SetActionCollection(IInputActionCollection2 actions)
         {
@@ -93,6 +110,7 @@ namespace SensenToolkit
 
         private void OnPanelHidden(PanelFadable panel)
         {
+            Logger.Info($"OnPanelHidden: {panel.NameWithParent()}");
             PanelFadable topPanel;
             do
             {
@@ -127,10 +145,16 @@ namespace SensenToolkit
 
         private PanelFadable PopTop()
         {
-            if (_stack.Count == 0) return null;
+            bool ignored = _stack.Count == 0;
+            if (ignored)
+            {
+                Logger.Info($"PopTop: (ignored) stackCount:{_stack.Count}");
+                return null;
+            }
             PanelFadable previousTopPanel = _stack.Pop();
             previousTopPanel.OnHidden -= OnPanelHidden;
             previousTopPanel.Hide();
+            Logger.Info($"PopTop: poppedPanel:{previousTopPanel.NameWithParent()} newStackCount:{_stack.Count}");
             return previousTopPanel;
         }
 
@@ -139,6 +163,7 @@ namespace SensenToolkit
 
         private void OnHoldingFocusChangedReaction(bool _)
         {
+            Logger.Info($"OnHoldingFocusChangedReaction: IsHoldingFocus:{IsHoldingFocus}");
             if (_freezeService != null)
             {
                 if (IsHoldingFocus) _freezeService.HoldFreeze(this);
