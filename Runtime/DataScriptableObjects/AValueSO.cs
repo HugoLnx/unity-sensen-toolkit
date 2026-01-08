@@ -27,6 +27,7 @@ namespace SensenToolkit
 
         public Tvalue Value { get => GetValue(); set => SetValue(value); }
         public Tvalue DefaultValue => ResolveDefaultValue();
+        public override bool IsUsingDefaultValue => EqualityComparer<Tvalue>.Default.Equals(Value, DefaultValue);
 
         public override object ValueAsObject => Value;
         public override string Name => _name;

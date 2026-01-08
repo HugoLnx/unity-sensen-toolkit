@@ -9,5 +9,6 @@ namespace SensenToolkit
         public abstract void ResetToDefault();
         public abstract object ValueAsObject { get; }
         public abstract Type ValueType { get; }
+        public abstract bool IsUsingDefaultValue { get; }
     }
 }
