@@ -63,17 +63,22 @@ namespace SensenToolkit
 
         public static IEnumerable<string> GetSymbols()
         {
+            // TODO: Fix this method to work without the editor
+            HashSet<string> symbols = new();
 #if UNITY_EDITOR
             BuildTargetGroup buildTarget = EditorUserBuildSettings.selectedBuildTargetGroup;
             var namedBuildTarget = NamedBuildTarget.FromBuildTargetGroup(buildTarget);
-            return PlayerSettings
+            IEnumerable<string> buildSymbols = PlayerSettings
                 .GetScriptingDefineSymbols(namedBuildTarget)
                 .Split(";")
                 .Where(s => !string.IsNullOrWhiteSpace(s));
-#else
-            // TODO: Solve it in other way
-            return new List<string>();
+            foreach (string symbol in buildSymbols) symbols.Add(symbol);
+#elif LANG_PT || LANG_PTBR || LANG_PT_BR
+            symbols.Add("LANG_PTBR");
+#elif LANG_EN || LANG_ENUS || LANG_EN_US
+            symbols.Add("LANG_ENUS");
 #endif
+            return symbols;
         }
 
         private static string ResolveBuildLocaleCode()
