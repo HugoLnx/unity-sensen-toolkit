@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SensenToolkit.InputRebinding.Data;
@@ -29,14 +30,24 @@ namespace SensenToolkit.InputRebinding.Internal
             lines.Add($"---- [Bindings:{bindings.Count()}] {title} ----");
             foreach (BindingPlus binding in bindings)
             {
-                InputAction action = binding.Action;
-                InputActionMap actionMap = binding.ActionMap;
-                string actionKey = InputUtils.GenerateActionKey(action, actionMap);
-                InputBinding rawBinding = binding.Binding;
-                lines.Add($"['{actionKey}' '{rawBinding.action}' '{rawBinding.path}'] '{rawBinding.name}' '{binding.Key}' 'isComposite: {rawBinding.isComposite}'");
+                lines.Add(GetBindingDebugLine(binding));
             }
             lines.Add("----------------------");
             Debug.Log(string.Join("\n", lines));
+        }
+
+        public static void DebugPrintBinding(string title, BindingPlus binding)
+        {
+            Debug.Log($"[Binding:{title}] " + GetBindingDebugLine(binding));
+        }
+
+        private static string GetBindingDebugLine(BindingPlus binding)
+        {
+            InputAction action = binding.Action;
+            InputActionMap actionMap = binding.ActionMap;
+            string actionKey = InputUtils.GenerateActionKey(action, actionMap);
+            InputBinding rawBinding = binding.Binding;
+            return $"['{actionKey}' '{rawBinding.action}' '{rawBinding.path}'] '{rawBinding.name}' '{binding.Key}' 'isComposite: {rawBinding.isComposite}'";
         }
 
         public static void DebugPrintActions(string title, IInputActionCollection2 actions)

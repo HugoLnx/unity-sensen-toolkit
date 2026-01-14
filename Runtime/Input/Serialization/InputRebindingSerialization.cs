@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using SensenToolkit.InputRebinding.Data;
@@ -181,21 +180,7 @@ namespace SensenToolkit
             for (int i = 0; i < originalBindings.Count; i++)
             {
                 BindingPlus binding = originalBindings[i];
-                InputBinding rawBinding = binding.Binding;
-                bool isDeleted = false;
-                if (rawBinding.isComposite)
-                {
-                    int nextInx = i + 1;
-                    BindingPlus nextBinding = nextInx < originalBindings.Count ? originalBindings[nextInx] : null;
-                    isDeleted = deletedBindingKeys?.Contains(binding.Key) == true
-                        || nextBinding == null
-                        || deletedBindingKeys?.Contains(nextBinding.Key) == true;
-                }
-                else
-                {
-                    isDeleted = deletedBindingKeys?.Contains(binding.Key) == true;
-                }
-
+                bool isDeleted = deletedBindingKeys?.Contains(binding.Key) == true;
                 if (isDeleted) continue;
 
                 originalBindingsToReAdd.Add(binding);
