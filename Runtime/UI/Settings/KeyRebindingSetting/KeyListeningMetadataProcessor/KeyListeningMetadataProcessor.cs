@@ -44,6 +44,12 @@ namespace SensenToolkit.InputRebinding.Internal
             string unknownDeviceGroup = isKnownDevice ? null : InputDeviceUtils.GenerateId(device);
             string unknownDeviceShortName = isKnownDevice ? null : InputDeviceUtils.GenerateShortName(device);
 
+            if (!isKnownDevice)
+            {
+                newPathParts.ForceSpecificDeviceToPath(device);
+                newPath = newPathParts.AsString;
+            }
+
             // bool isAlreadyBound = action.controls.Any(control => InputControlPath.Matches(newPath, control));
             List<string> groupsList = new() { mainGroup };
             if (!isKnownDevice)

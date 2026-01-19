@@ -60,6 +60,12 @@ namespace SensenToolkit.InputRebinding.Internal
                     if (joyStr != null) return joyStr;
                     return null;
                 default:
+                    if (cb.Path.MatchesControl("trigger"))
+                    {
+                        // If is exactly "trigger", then it's the main trigger button
+                        return $"{BUTTON_SHORTNAME_PREFIX}0";
+                    }
+
                     if (
                         cb.Path.Control.Contains("trigger", StringComparison.OrdinalIgnoreCase)
                         || cb.Path.Control.Contains("shoulder", StringComparison.OrdinalIgnoreCase)

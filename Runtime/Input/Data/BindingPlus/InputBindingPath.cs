@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using SensenToolkit.InputRebinding.Internal;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace SensenToolkit.InputRebinding.Data
 {
@@ -87,6 +88,12 @@ namespace SensenToolkit.InputRebinding.Data
             return string.IsNullOrEmpty(ControlPart)
                 ? $"{Device}/{Control}"
                 : $"{Device}/{Control}/{ControlPart}";
+        }
+
+        public void ForceSpecificDeviceToPath(InputDevice device)
+        {
+            string specificDevice = $"<{device.layout}>";
+            SetDevice(specificDevice);
         }
     }
 }
