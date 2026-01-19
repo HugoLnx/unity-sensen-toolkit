@@ -22,6 +22,8 @@ namespace SensenToolkit.InputRebinding.Internal
         {
             "<Mouse>/position",
             "<Mouse>/delta",
+            "<VirtualMouse>/position",
+            "<VirtualMouse>/delta",
             "<Pointer>/position",
             "<Pointer>/delta",
         };

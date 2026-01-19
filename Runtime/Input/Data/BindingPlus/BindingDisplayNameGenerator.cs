@@ -33,6 +33,7 @@ namespace SensenToolkit.InputRebinding.Internal
             switch (cb.Path.Device)
             {
                 case "<Mouse>":
+                case "<VirtualMouse>":
                 case "<Pointer>":
                     bool isMouseMove = cb.Path.MatchesControl("delta") || cb.Path.MatchesControl("position");
                     if (isMouseMove) return "MousePosition";
