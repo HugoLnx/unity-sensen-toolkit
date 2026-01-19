@@ -64,6 +64,7 @@ namespace SensenToolkit.InputRebinding.Data
                     .Trim();
                 version = s_specialCharsRegex.Replace(version, "");
             }
+            product = s_specialCharsRegex.Replace(product, "");
 
             const int TARGET_LENGTH = 7;
             const int MAX_VERSION_LENGTH = 3;

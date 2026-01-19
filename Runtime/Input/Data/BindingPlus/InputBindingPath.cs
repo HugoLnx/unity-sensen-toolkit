@@ -1,11 +1,14 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using SensenToolkit.InputRebinding.Internal;
+using UnityEngine;
 
 namespace SensenToolkit.InputRebinding.Data
 {
     public class InputBindingPath
     {
+        private static readonly Regex s_deviceNamePattern = new(@"^(\<[^>]+\>)", RegexOptions.Compiled);
         /*
             <Mouse>/leftButton => "<Mouse>", "leftButton", null
             <Gamepad>/leftStick/up => "<Gamepad>", "leftStick", "up"
@@ -27,11 +30,12 @@ namespace SensenToolkit.InputRebinding.Data
 
         public static InputBindingPath FromFullPath(string path)
         {
-            string[] pathParts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            string device = ExtractDevice(path);
+            string[] pathParts = path[(device.Length + 1)..].Split('/', StringSplitOptions.RemoveEmptyEntries);
             return new(
-                device: pathParts.Length >= 1 ? pathParts[0] : null,
-                control: pathParts.Length >= 2 ? pathParts[1] : null,
-                controlPart: pathParts.Length >= 3 ? string.Join('/', pathParts[2..^0]) : null
+                device: device,
+                control: pathParts.Length >= 1 ? pathParts[0] : null,
+                controlPart: pathParts.Length >= 2 ? string.Join('/', pathParts[1..^0]) : null
             );
         }
 
@@ -66,9 +70,15 @@ namespace SensenToolkit.InputRebinding.Data
 
         public static string ExtractDevice(string path)
         {
-            int slashIndex = path.IndexOf('/');
-            if (slashIndex < 0) return path;
-            return path[..slashIndex];
+            if (string.IsNullOrEmpty(path)) return null;
+            Match match = s_deviceNamePattern.Match(path);
+            if (!match.Success)
+            {
+                Debug.LogWarning($"[InputBindingPath] ExtractDevice: No device found in path '{path}'");
+                return null;
+            }
+
+            return match.Groups[1].Value;
         }
 
         private string BuildStringJoined()

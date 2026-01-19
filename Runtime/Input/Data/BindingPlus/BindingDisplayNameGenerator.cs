@@ -8,6 +8,7 @@ namespace SensenToolkit.InputRebinding.Internal
 {
     public static class BindingDisplayNameGenerator
     {
+        private const string BUTTON_SHORTNAME_PREFIX = "Btn";
         private static readonly Regex s_blankRegex = new(@"\s+", RegexOptions.Compiled);
         public static string GenerateDisplayNameFor(BindingPlus plus, bool shortenForComposite = false)
         {
@@ -33,16 +34,13 @@ namespace SensenToolkit.InputRebinding.Internal
             {
                 case "<Mouse>":
                 case "<Pointer>":
-                    switch (cb.Path.Control)
-                    {
-                        case "leftButton": return "LeftClick";
-                        case "rightButton": return "RightClick";
-                        case "middleButton": return "MiddleClick";
-                        case "delta":
-                        case "position":
-                            return "MousePosition";
-                        default: return null;
-                    }
+                    bool isMouseMove = cb.Path.MatchesControl("delta") || cb.Path.MatchesControl("position");
+                    if (isMouseMove) return "MousePosition";
+
+                    bool isClick = cb.Path.Control.Contains("button", StringComparison.OrdinalIgnoreCase);
+                    if (isClick) return cb.Path.Control.Capitalize().Replace("button", "Click", StringComparison.OrdinalIgnoreCase);
+
+                    return null;
                 case "<Keyboard>":
                     if (cb.Path.Control.Count() == 1)
                     {
@@ -53,7 +51,7 @@ namespace SensenToolkit.InputRebinding.Internal
                 case "<Joystick>":
                     if (cb.Path.MatchesControl("trigger"))
                     {
-                        return "Btn0";
+                        return $"{BUTTON_SHORTNAME_PREFIX}0";
                     }
                     string joyStr = BuildSubControlDisplayString(cb, "stick");
                     if (joyStr != null) return joyStr;
@@ -80,11 +78,11 @@ namespace SensenToolkit.InputRebinding.Internal
 
                     if (cb.Path.Control.Contains("button", StringComparison.OrdinalIgnoreCase))
                     {
-                        gpadStr = cb.Binding.ToDisplayString();
-                        gpadStr = gpadStr.Replace("utton", "tn", StringComparison.OrdinalIgnoreCase);
-                        gpadStr = s_blankRegex.Replace(gpadStr, "");
-                        if (gpadStr.Contains("Btn")) return gpadStr;
-                        else return $"Btn{gpadStr}";
+                        string btnSuffix = cb.Binding.ToDisplayString();
+                        btnSuffix = s_blankRegex.Replace(btnSuffix, "")
+                            .Replace("button", "", StringComparison.OrdinalIgnoreCase)
+                            .Replace(BUTTON_SHORTNAME_PREFIX, "", StringComparison.OrdinalIgnoreCase);
+                        return $"{BUTTON_SHORTNAME_PREFIX}{btnSuffix.ToUpperInvariant()}";
                     }
                     return null;
             }
