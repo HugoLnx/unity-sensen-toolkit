@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
 
@@ -7,25 +7,25 @@ namespace SensenToolkit
     public class TimedWaitWhile
     {
         private const float WaitDelayTime = 0.1f;
-        private static readonly WaitForSeconds WaitDelay = new WaitForSeconds(WaitDelayTime);
-        private readonly Func<bool> condition;
-        private float timeout;
-        public bool HasTimedout {get; private set;} = false;
+        private static readonly WaitForSeconds s_waitDelay = new(WaitDelayTime);
+        private readonly Func<bool> _condition;
+        private float _timeout;
+        public bool HasTimedout { get; private set; } = false;
 
         public TimedWaitWhile(Func<bool> condition, float timeout)
         {
-            this.condition = condition;
-            this.timeout = timeout;
+            this._condition = condition;
+            this._timeout = timeout;
         }
 
         public IEnumerator Wait()
         {
-            while (condition() && timeout > 0f)
+            float timeoutMoment = Time.time + _timeout;
+            while (_condition() && Time.time < timeoutMoment)
             {
-                yield return WaitDelay;
-                timeout -= WaitDelayTime;
+                yield return s_waitDelay;
             }
-            if (timeout <= 0)
+            if (_timeout <= 0)
             {
                 this.HasTimedout = true;
                 yield break;
