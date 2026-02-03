@@ -1,4 +1,4 @@
-using EasyButtons;
+﻿using EasyButtons;
 using MyBox;
 using UnityEngine;
 
@@ -7,6 +7,7 @@ namespace SensenToolkit
     public class SpriteRendererAlpha : MonoBehaviour, ISingleAlpha
     {
         [SerializeField, AutoProperty] private SpriteRenderer _srenderer;
+        [SerializeField] private float _forceInitialAlpha = -1f;
         [SerializeField, ReadOnly] private float _alpha = 1f;
         private float? _initialAlpha;
         private float InitialAlpha => EnsureInitialAlpha();
@@ -29,8 +30,7 @@ namespace SensenToolkit
 
         private void OnDisable()
         {
-            if (!_initialAlpha.HasValue) return;
-            _srenderer.color = _srenderer.color.WithAlpha(_initialAlpha.Value);
+            _srenderer.color = _srenderer.color.WithAlpha(InitialAlpha);
         }
 
         private void RefreshSpriteRenderer()
@@ -48,6 +48,7 @@ namespace SensenToolkit
 
         private float EnsureInitialAlpha()
         {
+            if (_forceInitialAlpha > 0f) return _forceInitialAlpha;
             return _initialAlpha ??= _srenderer.color.a;
         }
     }
