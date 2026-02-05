@@ -1,5 +1,5 @@
-
-using System;
+﻿using System;
+using MyBox;
 using UnityEngine.SceneManagement;
 
 namespace SensenToolkit
@@ -32,6 +32,24 @@ namespace SensenToolkit
         {
             return scene == null
                 || (scene.buildIndex == -1 && string.IsNullOrEmpty(scene.name) && string.IsNullOrEmpty(scene.path));
+        }
+
+        public static bool IsSameScene(SceneReference a, SceneReference b)
+        {
+            if (a == null || b == null) return false;
+            return a.SceneName == b.SceneName;
+        }
+
+        public static bool IsSameScene(SceneReference sceneRef, Scene scene)
+        {
+            if (sceneRef == null || IsEmptyScene(scene)) return false;
+            return sceneRef.SceneName == scene.name;
+        }
+
+        public static bool IsSameScene(Scene a, Scene b)
+        {
+            if (IsEmptyScene(a) || IsEmptyScene(b)) return false;
+            return a.path == b.path;
         }
     }
 }
