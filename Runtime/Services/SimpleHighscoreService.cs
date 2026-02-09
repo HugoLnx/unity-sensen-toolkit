@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using EasyButtons;
 using MyBox;
 using SensenToolkit;
@@ -26,7 +26,7 @@ namespace SensenToolkit
         protected override void AwakeSingleton()
         {
             base.AwakeSingleton();
-            _highscore = PlayerPrefs.GetInt(HIGH_SCORE_KEY, 0);
+            _highscore = _saveOnPrefs ? PlayerPrefs.GetInt(HIGH_SCORE_KEY, 0) : 0;
             if (_saveOnPrefs)
             {
                 _saveThrottlingTimer = new SimpleTimer(_forceSaveDelaySecs);
@@ -87,7 +87,11 @@ namespace SensenToolkit
             if (!overwrite && _highscore >= value) return;
             int previousHighscore = _highscore;
             _highscore = value;
-            PlayerPrefs.SetInt(HIGH_SCORE_KEY, _highscore);
+
+            if (_saveOnPrefs)
+            {
+                PlayerPrefs.SetInt(HIGH_SCORE_KEY, _highscore);
+            }
             OnHighscoreChanged.Invoke(_highscore);
             if (_highscore > previousHighscore && !_emittedNewHighscore)
             {
@@ -106,7 +110,10 @@ namespace SensenToolkit
         public void ResetHighscore()
         {
             _highscore = 0;
-            PlayerPrefs.DeleteKey(HIGH_SCORE_KEY);
+            if (_saveOnPrefs)
+            {
+                PlayerPrefs.DeleteKey(HIGH_SCORE_KEY);
+            }
             OnHighscoreChanged.Invoke(_highscore);
             BootEmittedHighscore();
         }
