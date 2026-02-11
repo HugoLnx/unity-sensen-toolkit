@@ -1,4 +1,4 @@
-#if DOTWEEN
+﻿#if DOTWEEN
 using System;
 using System.Diagnostics;
 using DG.Tweening;
@@ -57,6 +57,7 @@ namespace SensenToolkit
         private Tween _tween;
         public bool IsVisible { get; private set; }
         public bool IsFullyVisible => IsVisible && _canvasGroup.alpha >= 1f;
+        public bool IsFullyInvisible => !IsVisible || _canvasGroup.alpha <= 0f;
         public CanvasGroup CanvasGroup => _canvasGroup;
 
         public event System.Action<PanelFadable> OnPrepareToShow = delegate { };
