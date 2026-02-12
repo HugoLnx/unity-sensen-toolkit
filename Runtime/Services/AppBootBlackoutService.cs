@@ -23,11 +23,6 @@ namespace SensenToolkit
 
         public event Action OnBlackoutIsOver = delegate { };
 
-        protected override void AwakeSingleton()
-        {
-            base.AwakeSingleton();
-        }
-
         private IEnumerator Start()
         {
             Logger.Info("Show Blackout");
@@ -38,6 +33,12 @@ namespace SensenToolkit
             yield return null;
             yield return null;
             TryEndBlackout();
+        }
+
+        protected override void OnDestroyExcess()
+        {
+            base.OnDestroyExcess();
+            Destroy(_panel.gameObject);
         }
 
         public void HoldBlackout(object holder)
