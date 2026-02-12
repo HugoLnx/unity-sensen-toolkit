@@ -90,6 +90,7 @@ namespace SensenToolkit
                 PlayerPrefs.SetInt(HIGH_SCORE_KEY, _highscore);
             }
             BootEmittedHighscore();
+            OnInit.Invoke();
             OnHighscoreChanged.Invoke(_highscore);
         }
 
