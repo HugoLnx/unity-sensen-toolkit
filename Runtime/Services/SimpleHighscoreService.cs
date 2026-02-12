@@ -82,6 +82,17 @@ namespace SensenToolkit
             OnInit -= action;
         }
 
+        public void BootWithValue(int value)
+        {
+            _highscore = value;
+            if (_saveOnPrefs)
+            {
+                PlayerPrefs.SetInt(HIGH_SCORE_KEY, _highscore);
+            }
+            BootEmittedHighscore();
+            OnHighscoreChanged.Invoke(_highscore);
+        }
+
         public void TryUpdateValue(int value, bool overwrite = false)
         {
             if (!overwrite && _highscore >= value) return;
