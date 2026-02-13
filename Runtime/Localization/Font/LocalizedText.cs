@@ -1,4 +1,4 @@
-using MyBox;
+﻿using MyBox;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Localization;
@@ -31,7 +31,7 @@ namespace SensenToolkit
 
         private void OnLocalizationTriggered(Locale _)
         {
-            if (_string == null || _string.IsEmpty) return;
+            if (LocStringx.IsEmptyOrNull(_string)) return;
             _text.text = _string.GetLocalizedString();
         }
     }

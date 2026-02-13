@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using EasyButtons;
 using MyBox;
@@ -117,7 +117,7 @@ namespace SensenToolkit
             if (string.IsNullOrEmpty(str))
             {
                 LocalizedString localizedString = null;
-                if (_testLocalizedString != null && !_testLocalizedString.IsEmpty)
+                if (LocStringx.IsPresent(_testLocalizedString))
                 {
                     localizedString = _testLocalizedString;
                 }
@@ -130,7 +130,7 @@ namespace SensenToolkit
                     localizedString = locStringEvent.StringReference;
                 }
 
-                if (localizedString != null && !localizedString.IsEmpty)
+                if (LocStringx.IsPresent(localizedString))
                 {
                     localizedString.LocaleOverride = locale;
                     str = localizedString.GetLocalizedString();

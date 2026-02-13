@@ -1,4 +1,4 @@
-#if SENSEN_UI_HEAT
+﻿#if SENSEN_UI_HEAT
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +20,7 @@ namespace SensenToolkit
         [SerializeField]
         private LocalizedString _nameI18n;
         public string Key;
-        public bool IsLocalized => _nameI18n != null && !_nameI18n.IsEmpty;
+        public bool IsLocalized => LocStringx.IsPresent(_nameI18n);
         public string Name
         {
             get => IsLocalized ? _nameI18n.GetLocalizedString() : _name;
