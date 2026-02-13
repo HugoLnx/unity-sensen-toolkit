@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using SysCrypto = System.Security.Cryptography;
 
 namespace SensenToolkit
@@ -20,6 +20,7 @@ namespace SensenToolkit
         public string SHA1(string key) => HashWith(SHA1Obj, key);
         public string SHA256(string key) => HashWith(SHA256Obj, key);
         public string SHA512(string key) => HashWith(SHA512Obj, key);
+        public string SHA1Short(string key) => SHA1(key).Substring(0, 9);
 
         private static string HashWith(SysCrypto.HashAlgorithm hashAlg, string key)
         {

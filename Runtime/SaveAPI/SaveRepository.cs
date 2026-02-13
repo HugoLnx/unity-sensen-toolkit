@@ -19,7 +19,7 @@ namespace SensenToolkit
         {
             SimpleHashing hashing = new();
             return new SaveRepository<TData>(
-                filenameKey: hashing.SHA1(filenameKey),
+                filenameKey: hashing.SHA1Short(filenameKey),
                 subfolder: subfolder
             );
         }

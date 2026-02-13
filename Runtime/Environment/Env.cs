@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using SensenToolkit.EnvInternal;
 #if UNITY_EDITOR
@@ -59,6 +59,18 @@ namespace SensenToolkit
 #else
             get => false;
 #endif
+        }
+
+        public static string GetEnvId()
+        {
+            List<string> keywords = new();
+            if (IsDebugBuild) keywords.Add("debug");
+            if (IsBoothBuild) keywords.Add("booth");
+            else if (IsDemoBuild) keywords.Add("demo");
+            else if (IsProductionBuild) keywords.Add("prod");
+            else if (IsEditor) keywords.Add("editor");
+            else keywords.Add("dev");
+            return string.Join("-", keywords);
         }
 
         public static IEnumerable<string> GetSymbols()
