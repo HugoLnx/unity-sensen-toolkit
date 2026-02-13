@@ -1,4 +1,5 @@
 ﻿#if SENSEN_BAYAT
+using System;
 using Bayat.SaveSystem;
 using Cysharp.Threading.Tasks;
 
@@ -6,7 +7,7 @@ namespace SensenToolkit
 {
     public static class SaveToolkit
     {
-        public static async UniTaskVoid SaveAsync<TData>(SaveRepository<TData> repository, TData data)
+        public static async UniTask SaveAsync<TData>(SaveRepository<TData> repository, TData data)
         where TData : ISaveRootData
         {
             await SaveSystemAPI.SaveAsync(repository.Key, data).AsUniTask();
@@ -36,10 +37,16 @@ namespace SensenToolkit
             }
         }
 
-        public static async UniTaskVoid DeleteAsync<TData>(SaveRepository<TData> repository)
+        public static async UniTask DeleteAsync<TData>(SaveRepository<TData> repository)
         where TData : ISaveRootData
         {
             await SaveSystemAPI.DeleteAsync(repository.Key).AsUniTask();
+        }
+
+        public static async UniTask BackupAsync<TData>(SaveRepository<TData> repository)
+        where TData : ISaveRootData
+        {
+            await SaveSystemAPI.CreateBackupAsync(repository.Key).AsUniTask();
         }
     }
 }
