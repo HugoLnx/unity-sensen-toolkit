@@ -1,19 +1,26 @@
-﻿namespace SensenToolkit
+﻿using System.IO;
+
+namespace SensenToolkit
 {
     public class SaveRepository<TData> where TData : ISaveRootData
     {
         public string Key { get; private set; }
+        private string _filenameKey;
+        private string _subfolder;
 
-        private SaveRepository(string key)
+        private SaveRepository(string filenameKey, string subfolder = null)
         {
-            Key = key;
+            _filenameKey = filenameKey;
+            _subfolder = subfolder;
+            Key = string.IsNullOrEmpty(subfolder) ? filenameKey : $"{subfolder}/{filenameKey}";
         }
 
-        public static SaveRepository<TData> Create(string key)
+        public static SaveRepository<TData> Create(string filenameKey, string subfolder = null)
         {
             SimpleHashing hashing = new();
             return new SaveRepository<TData>(
-                key: hashing.SHA1(key)
+                filenameKey: hashing.SHA1(filenameKey),
+                subfolder: subfolder
             );
         }
     }
