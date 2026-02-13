@@ -169,6 +169,10 @@ namespace SensenToolkit
             Tweenx.KillAndNullify(ref _tween);
             SetVisibilityTo(true);
             SwitchInteractivityTo(false);
+            if (_autoPushToStack && _panelsService != null)
+            {
+                _panelsService.PushTop(this);
+            }
             if (_parentPanel == null || _parentPanel.IsVisible)
             {
                 LogInfo($"Invoke:{nameof(OnPrepareToShow)}");
@@ -181,10 +185,6 @@ namespace SensenToolkit
             LogInfo($"{nameof(FinishShow)} called.");
             SwitchInteractivityTo(true);
             _canvasGroup.alpha = 1f;
-            if (_autoPushToStack && _panelsService != null)
-            {
-                _panelsService.PushTop(this);
-            }
             if (_parentPanel == null || _parentPanel.IsVisible)
             {
                 LogInfo($"Invoke:{nameof(OnShown)}");
