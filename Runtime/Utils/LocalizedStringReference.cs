@@ -1,18 +1,25 @@
+﻿using System;
 using UnityEngine.Localization;
 
 namespace SensenToolkit
 {
+
     public class LocalizedStringReference
     {
         private LocalizedString _current;
         private object[] _args;
-        private string Text => _current?.GetLocalizedString(_args) ?? string.Empty;
+        private string Text => LocStringx.IsPresent(_current)
+            ? _current.GetLocalizedString(_args)
+            : null;
         private event System.Action<string> OnUpdateText = delegate { };
 
         public void AddTextListener(System.Action<string> onUpdateText)
         {
             OnUpdateText += onUpdateText;
-            EmitUpdate();
+            if (!string.IsNullOrEmpty(Text))
+            {
+                onUpdateText.Invoke(Text);
+            }
         }
 
         public void RemoveTextListener(System.Action<string> onUpdateText)
@@ -20,29 +27,46 @@ namespace SensenToolkit
             OnUpdateText -= onUpdateText;
         }
 
-        public void SetLocalized(LocalizedString str, params object[] args)
+        public void SetLocalized(LocalizedString newStr, params object[] args)
         {
-            if (_current == str && args.Length == 0) return;
-            LocalizedString newStr = str;
-            LocalizedString oldStr = _current;
-            _current = str;
-            SetArgs(args);
+            bool isCurrentPresent = LocStringx.IsPresent(_current);
+            bool isNewPresent = LocStringx.IsPresent(newStr);
 
-            if (oldStr != null)
+            bool strChanged = isNewPresent != isCurrentPresent
+                || (isNewPresent && newStr != _current);
+            if (strChanged)
             {
-                oldStr.StringChanged -= OnStringChanged;
+                LocalizedString oldStr = _current;
+                _current = newStr;
+
+                if (LocStringx.IsPresent(oldStr))
+                {
+                    oldStr.StringChanged -= OnStringChanged;
+                }
+                if (LocStringx.IsPresent(newStr))
+                {
+                    newStr.StringChanged += OnStringChanged;
+                }
             }
-            if (newStr != null)
+
+            bool currentHasArgs = _args != null && _args.Length > 0;
+            bool newHasArgs = args != null && args.Length > 0;
+            bool argsChanged = newHasArgs || currentHasArgs || (newHasArgs != currentHasArgs);
+            if (argsChanged)
             {
-                newStr.StringChanged += OnStringChanged;
+                SetArgs(args, emitUpdate: false);
             }
-            OnUpdateText.Invoke(Text);
+            if (strChanged || argsChanged) EmitUpdate();
         }
 
-        public void SetArgs(object[] args)
+        public void SetArgs(object[] args, bool emitUpdate = true)
         {
             _args = args;
-            _current?.RefreshString();
+            if (LocStringx.IsPresent(_current))
+            {
+                _current.RefreshString();
+                if (emitUpdate) EmitUpdate();
+            }
         }
 
         private void OnStringChanged(string value)
