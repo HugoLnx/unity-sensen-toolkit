@@ -27,6 +27,15 @@ namespace SensenToolkit
             {
                 _parentPanel.OnPrepareToShow += OnPrepareToShow;
             }
+            StartCoroutine(DelayedRefreshStyling());
+        }
+
+        private void OnDisable()
+        {
+            if (_parentPanel != null)
+            {
+                _parentPanel.OnPrepareToShow -= OnPrepareToShow;
+            }
         }
 
         private void Start()
