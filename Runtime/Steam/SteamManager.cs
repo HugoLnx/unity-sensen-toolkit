@@ -58,7 +58,7 @@ namespace SensenToolkit
         }
 
 
-#if !DISABLESTEAMWORKS && (UNITY_EDITOR || !SENSEN_DEBUG_BUILD)
+#if (!DISABLESTEAMWORKS && !SENSEN_BOOTH_BUILD) || UNITY_EDITOR
         private static bool s_everInitialized = false;
         private bool _isInitialized = false;
         public bool IsInitialized => _isInitialized;
