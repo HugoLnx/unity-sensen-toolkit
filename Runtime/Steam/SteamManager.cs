@@ -32,14 +32,13 @@ namespace SensenToolkit
         public bool IsBooted => IsInitialized || IsDisabled;
         public AppId_t AppId => (AppId_t)(Env.IsDemoBuild ? _demoAppId : _prodAppId);
 
-        public static CSteamID UserId => s_userId == default
-            ? throw new System.InvalidOperationException("UserId is not set. You should call it only after SteamManager is initialized.")
-            : s_userId;
+        public static CSteamID UserId => GetIfInitialized(s_userId);
+        public static CGameID GameId => GetIfInitialized(s_gameId);
         public static string ResolvedUserName => GetResolved(s_resolvedUserName);
-
         public static string ResolvedUserId => GetResolved(s_resolvedUserId);
         public static string ResolvedUserIdHash => GetResolved(s_resolvedUserIdHash);
-        private static CSteamID s_userId = default;
+        private static CSteamID? s_userId = null;
+        private static CGameID? s_gameId = null;
         private static string s_resolvedUserId = null;
         private static string s_resolvedUserName = null;
         private static string s_resolvedUserIdHash = null;
@@ -54,11 +53,12 @@ namespace SensenToolkit
             s_resolvedUserId = null;
             s_resolvedUserName = null;
             s_resolvedUserIdHash = null;
-            s_userId = default;
+            s_userId = null;
+            s_gameId = null;
         }
 
 
-#if !DISABLESTEAMWORKS
+#if !DISABLESTEAMWORKS && (UNITY_EDITOR || !SENSEN_DEBUG_BUILD)
         private static bool s_everInitialized = false;
         private bool _isInitialized = false;
         public bool IsInitialized => _isInitialized;
@@ -151,6 +151,7 @@ namespace SensenToolkit
             if (_isInitialized)
             {
                 s_userId = SteamUser.GetSteamID();
+                s_gameId = new CGameID(SteamUtils.GetAppID());
                 s_resolvedUserId = s_userId.ToString();
                 s_resolvedUserName = SteamFriends.GetPersonaName();
                 s_resolvedUserIdHash = SimpleHashing.Instance.SHA1Short(s_resolvedUserId);
@@ -198,16 +199,16 @@ namespace SensenToolkit
             SteamAPI.Shutdown();
         }
 
-        // protected virtual void Update()
-        // {
-        //     if (!_isInitialized)
-        //     {
-        //         return;
-        //     }
+        protected virtual void Update()
+        {
+            if (!_isInitialized)
+            {
+                return;
+            }
 
-        //     // Run Steam client callbacks
-        //     SteamAPI.RunCallbacks();
-        // }
+            // Run Steam client callbacks
+            SteamAPI.RunCallbacks();
+        }
 
 #else
         public bool IsInitialized => false;
@@ -282,10 +283,33 @@ namespace SensenToolkit
 
         private static void SetupGuestUser()
         {
-            s_userId = default;
+            s_userId = null;
+            s_gameId = null;
             s_resolvedUserId = "guest";
             s_resolvedUserName = "Guest";
             s_resolvedUserIdHash = "guest";
+        }
+
+        public static IEnumerator WaitBooted()
+        {
+            var steamManager = SteamManager.GetInstanceIfExists();
+            if (steamManager == null) yield break;
+
+            yield return new WaitUntil(() => steamManager.IsBooted);
+        }
+
+        private static T GetIfInitialized<T>(T? val) where T : struct
+        {
+            if (val == null)
+            {
+                throw new System.InvalidOperationException("Value is not set. You should get it only after SteamManager is initialized.");
+            }
+            SteamManager steam = GetInstanceIfExists();
+            if (steam == null || !steam.IsInitialized)
+            {
+                throw new System.InvalidOperationException("SteamManager is not initialized.");
+            }
+            return val.Value;
         }
     }
 }
