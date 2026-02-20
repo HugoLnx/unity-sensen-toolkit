@@ -43,6 +43,15 @@ namespace SensenToolkit
         private static string s_resolvedUserName = null;
         private static string s_resolvedUserIdHash = null;
 
+        public static bool IsFunctional
+        {
+            get
+            {
+                SteamManager steam = GetInstanceIfExists();
+                return steam != null && steam.IsBooted && steam.IsInitialized;
+            }
+        }
+
         public delegate void SteamManagerBooted(bool initialized);
         private event SteamManagerBooted OnBooted = delegate { };
 
