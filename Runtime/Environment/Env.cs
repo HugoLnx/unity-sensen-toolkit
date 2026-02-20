@@ -64,12 +64,14 @@ namespace SensenToolkit
         public static string GetEnvId()
         {
             List<string> keywords = new();
-            if (IsDebugBuild) keywords.Add("debug");
             if (IsBoothBuild) keywords.Add("booth");
             else if (IsDemoBuild) keywords.Add("demo");
             else if (IsProductionBuild) keywords.Add("prod");
-            else if (IsEditor) keywords.Add("editor");
             else keywords.Add("dev");
+
+            if (IsEditor) keywords.Add("editor");
+            else if (IsDebugBuild) keywords.Add("debug");
+
             return string.Join("-", keywords);
         }
 
