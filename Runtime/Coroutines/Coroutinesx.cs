@@ -6,10 +6,10 @@ namespace SensenToolkit
 {
     public static class Coroutinesx
     {
-        public static IEnumerator TimedWaitWhile(Func<bool> condition, float timeout)
-            => new TimedWaitWhile(condition, timeout).Wait();
-        public static IEnumerator TimedWaitUntil(Func<bool> condition, float timeout)
-            => new TimedWaitWhile(() => !condition(), timeout).Wait();
+        public static IEnumerator TimedWaitWhile(Func<bool> condition, float timeout, bool realtime = false)
+            => new TimedWaitWhile(condition, timeout, realtime).Wait();
+        public static IEnumerator TimedWaitUntil(Func<bool> condition, float timeout, bool realtime = false)
+            => new TimedWaitWhile(() => !condition(), timeout, realtime).Wait();
 
         public static void KillAndNullify(MonoBehaviour mono, ref Coroutine coroutine)
         {
