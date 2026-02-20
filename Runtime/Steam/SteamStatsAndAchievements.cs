@@ -41,9 +41,7 @@ namespace SensenToolkit
 
         private IEnumerator CheckStatsAndAchievements()
         {
-            yield return SteamManager.WaitBooted();
-            var steam = SteamManager.GetInstanceIfExists();
-            if (steam == null || steam.IsDisabled) yield break;
+            if (!SteamManager.IsFunctional) yield break;
 
             foreach (AchievementSO achievement in Achievements)
             {
@@ -75,7 +73,7 @@ namespace SensenToolkit
         private const int STORE_THROTTLE_TIME_SECONDS = 30;
         public bool StoreStats(bool throttle = false)
         {
-            if (!CheckIsInitialized(nameof(StoreStats))) return false;
+            if (!CheckIsFunctional(nameof(StoreStats))) return false;
             if (throttle
                 && _lastStatsStoreTime.HasValue
                 && Time.time - _lastStatsStoreTime.Value < STORE_THROTTLE_TIME_SECONDS)
@@ -107,7 +105,7 @@ namespace SensenToolkit
         {
             if (!CheckValidStat(stat, nameof(SetStatFloat))) return false;
             string name = stat.SteamName;
-            if (!CheckIsInitialized(nameof(SetStatFloat), name)) return false;
+            if (!CheckIsFunctional(nameof(SetStatFloat), name)) return false;
             if (!SteamUserStats.SetStat(name, val))
             {
                 Debug.LogWarning($"[STEAMWORKS] SetStatFloat failed: {name} {val}");
@@ -121,7 +119,7 @@ namespace SensenToolkit
         {
             if (!CheckValidStat(stat, nameof(SetStatInt))) return false;
             string name = stat.SteamName;
-            if (!CheckIsInitialized(nameof(SetStatInt), name)) return false;
+            if (!CheckIsFunctional(nameof(SetStatInt), name)) return false;
             if (decrementOnly)
             {
                 if (!SteamUserStats.GetStat(name, out int currentVal))
@@ -143,7 +141,7 @@ namespace SensenToolkit
         {
             if (!CheckValidStat(stat, nameof(AddStatInt))) return false;
             string name = stat.SteamName;
-            if (!CheckIsInitialized(nameof(AddStatInt), name)) return false;
+            if (!CheckIsFunctional(nameof(AddStatInt), name)) return false;
             if (!SteamUserStats.GetStat(name, out int currentVal))
             {
                 Debug.LogWarning($"[STEAMWORKS] AddStatInt failed: {name} {val}");
@@ -159,7 +157,7 @@ namespace SensenToolkit
         {
             if (!CheckValidStat(stat, nameof(AddStatFloat))) return false;
             string name = stat.SteamName;
-            if (!CheckIsInitialized(nameof(AddStatFloat), name)) return false;
+            if (!CheckIsFunctional(nameof(AddStatFloat), name)) return false;
             if (!SteamUserStats.GetStat(name, out float currentVal))
             {
                 Debug.LogWarning($"[STEAMWORKS] AddStatFloat failed: {name} {val}");
@@ -174,7 +172,7 @@ namespace SensenToolkit
             val = default;
             if (!CheckValidStat(stat, nameof(TryGetStatInt))) return false;
             string name = stat.SteamName;
-            if (!CheckIsInitialized(nameof(TryGetStatInt), name)) return false;
+            if (!CheckIsFunctional(nameof(TryGetStatInt), name)) return false;
 
             if (SteamUserStats.GetStat(name, out int intVal))
             {
@@ -190,7 +188,7 @@ namespace SensenToolkit
             val = default;
             if (!CheckValidStat(stat, nameof(TryGetStatFloat))) return false;
             string name = stat.SteamName;
-            if (!CheckIsInitialized(nameof(TryGetStatFloat), name)) return false;
+            if (!CheckIsFunctional(nameof(TryGetStatFloat), name)) return false;
 
             if (SteamUserStats.GetStat(name, out float floatVal))
             {
@@ -206,7 +204,7 @@ namespace SensenToolkit
         {
             if (!CheckValidAchievement(achievement, nameof(UnlockAchievement))) return;
             string name = achievement.SteamName;
-            if (!CheckIsInitialized(nameof(UnlockAchievement), name)) return;
+            if (!CheckIsFunctional(nameof(UnlockAchievement), name)) return;
             if (!SteamUserStats.SetAchievement(name))
             {
                 Debug.LogWarning($"[STEAMWORKS] SetAchievement failed: {name}");
@@ -223,8 +221,7 @@ namespace SensenToolkit
         [Button]
         public void ResetStatsAndAchievements()
         {
-            var steam = SteamManager.GetInstanceIfExists();
-            if (steam.IsInitialized)
+            if (SteamManager.IsFunctional)
             {
                 SteamUserStats.ResetAllStats(bAchievementsToo: true);
                 SteamUserStats.StoreStats();
@@ -236,10 +233,10 @@ namespace SensenToolkit
             }
         }
 
-        private bool CheckIsInitialized(string operationName, string itemName = "")
+        private bool CheckIsFunctional(string operationName, string itemName = "")
         {
+            if (SteamManager.IsFunctional) return true;
             var steam = SteamManager.GetInstanceIfExists();
-            if (steam != null && steam.IsInitialized) return true;
             Logger.Info($"[Steam:{operationName}]{itemName} Canceled ({"!SteamBooted ".If(!steam.IsBooted)} {"SteamDisabled".If(steam.IsDisabled)})");
             return false;
         }
