@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
@@ -106,7 +106,6 @@ namespace SensenToolkit
         private void OnEnable()
         {
             KeyRebindingService.AddAssignListener(this,
-                forceInstance: false,
                 assign: (s) => s.OnRebindsLoaded += RefreshIfVisible,
                 unassign: (s) => s.OnRebindsLoaded -= RefreshIfVisible
             );

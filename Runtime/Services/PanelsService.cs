@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using MyBox;
@@ -38,7 +38,6 @@ namespace SensenToolkit
             _backAction.OnBindingAdd += action => action.performed += OnBackActionPerformed;
             _backAction.OnBindingRemove += action => action.performed -= OnBackActionPerformed;
             InputToolkitService.AddAssignListener(this,
-                forceInstance: false,
                 assign: (s) =>
                 {
                     _inputToolkit = s;

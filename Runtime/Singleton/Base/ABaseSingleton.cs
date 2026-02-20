@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace SensenToolkit.Internal
@@ -90,7 +90,7 @@ namespace SensenToolkit.Internal
             object key,
             Action<T> assign = null,
             Action<T> unassign = null,
-            bool forceInstance = true)
+            bool forceInstance = false)
         {
             OnSetSingletonCallbacks.AddAssignListeners(key, assign, unassign);
             if (HasInstance)

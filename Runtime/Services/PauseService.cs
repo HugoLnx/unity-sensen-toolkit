@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using MyBox;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -33,7 +33,6 @@ namespace SensenToolkit
             _unpauseAction.OnBindingAdd += action => action.performed += OnUnpauseActionPerformed;
             _unpauseAction.OnBindingRemove += action => action.performed -= OnUnpauseActionPerformed;
             InputToolkitService.AddAssignListener(this,
-                forceInstance: false,
                 assign: (s) =>
                 {
                     _inputToolkit = s;
