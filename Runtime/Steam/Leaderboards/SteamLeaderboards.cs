@@ -29,7 +29,7 @@ namespace SensenToolkit
 
         [SerializeField] private SteamLeaderboardSO[] _leaderboards;
 
-        private const bool ACTIVATE_LOGS = true;
+        private const bool ACTIVATE_LOGS = false;
         private Logx _logger;
         private new Logx Logger => _logger ??= Logx.GetLogger(nameof(SteamLeaderboards), activate: ACTIVATE_LOGS);
 
