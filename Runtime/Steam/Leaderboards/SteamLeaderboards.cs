@@ -234,7 +234,13 @@ namespace SensenToolkit
         private async UniTask<int> GetCurrentScoreValue(SteamLeaderboardSO leaderboardSo)
         {
             var result = new LeaderboardGetAllResult();
-            await GetListResults(leaderboardSo, result, 1, ApiCallGetEntriesAroundPlayer).ToUniTask();
+            await GetListResults(
+                leaderboardSo,
+                result,
+                amount: 1,
+                ApiCallGetEntriesAroundPlayer,
+                waitSubmissionsToComplete: false
+            ).ToUniTask();
             LeaderboardEntry? playerEntry = result.PlayerEntry;
             return playerEntry == null ? 0 : playerEntry.Value.Score;
         }
@@ -361,7 +367,8 @@ namespace SensenToolkit
             SteamLeaderboardSO leaderboardSo,
             LeaderboardGetAllResult result,
             int amount,
-            GetEntriesApiCall getEntriesApiCall
+            GetEntriesApiCall getEntriesApiCall,
+            bool waitSubmissionsToComplete = true
         )
         {
             if (!_leaderboardsEnsured.Contains(leaderboardSo))
@@ -374,12 +381,15 @@ namespace SensenToolkit
                 Debug.LogError("boardName is required if no default leaderboard is set");
                 yield break;
             }
-            if (_isSubmitScoreCheckRunning) ForceSkipDelayBetweenSubmissionsOnce();
-            yield return Coroutinesx.TimedWaitWhile(
-                () => _isSubmitScoreCheckRunning,
-                1f,
-                realtime: true
-            );
+            if (waitSubmissionsToComplete)
+            {
+                if (_isSubmitScoreCheckRunning) ForceSkipDelayBetweenSubmissionsOnce();
+                yield return Coroutinesx.TimedWaitWhile(
+                    () => _isSubmitScoreCheckRunning,
+                    1f,
+                    realtime: true
+                );
+            }
             if (_lockedGetApiCalls.Contains(getEntriesApiCall))
             {
                 yield return new WaitWhile(() => _lockedGetApiCalls.Contains(getEntriesApiCall));
