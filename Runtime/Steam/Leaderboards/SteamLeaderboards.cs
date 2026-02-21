@@ -22,10 +22,15 @@ namespace SensenToolkit
         // To control that we don't run into that limit, we use a custom rate limit system with some margin
         // and do delays between submission batches to spread out the submissions over time, even when we have slots available,
         // to avoid running out of slots too fast.
-        private const float RATE_LIMIT_TIME_FRAME_MINUTES = 9f;
-        private const int RATE_LIMIT_MAX_UPLOADS_PER_TIME_FRAME = 8;
-        private const float MIN_DELAY_BETWEEN_SUBMISSION_BATCHES_SECONDS = 7f;
-        private const float MAX_DELAY_BETWEEN_SUBMISSION_BATCHES_SECONDS = 90f;
+        private const float RATE_LIMIT_TIME_FRAME_MINUTES = 10.15f;
+        private const int RATE_LIMIT_MAX_UPLOADS_PER_TIME_FRAME
+#if UNITY_EDITOR
+        = 3;
+#else
+        = 10;
+#endif
+        private const float MIN_DELAY_BETWEEN_SUBMISSION_BATCHES_SECONDS = 20f;
+        private const float MAX_DELAY_BETWEEN_SUBMISSION_BATCHES_SECONDS = 120f;
 
         [SerializeField] private SteamLeaderboardSO[] _leaderboards;
 
@@ -412,7 +417,7 @@ namespace SensenToolkit
             {
                 if (_submitScoreLoopCoroutine != null) ForceSkipDelayBetweenSubmissionsOnce();
                 yield return Coroutinesx.TimedWaitWhile(
-                    () => _submitScoreLoopCoroutine != null,
+                    () => _submitScoreLoopCoroutine != null && SubmissionsRemainingOnTimeFrame > 0,
                     1f,
                     realtime: true
                 );
