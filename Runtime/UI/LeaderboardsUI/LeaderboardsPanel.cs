@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 namespace SensenToolkit
 {
-    public class LeaderboardsPanel : MonoBehaviour
+    public class LeaderboardsPanel : ATransientSingleton<LeaderboardsPanel>
     {
         [Header("Config")]
         [SerializeField] private int _maxEntries = 30;
@@ -49,7 +49,7 @@ namespace SensenToolkit
         private bool ShouldLoadDebugEntries => !Env.IsProductionBuild
             && (_shouldLoadDebugEntries || !SteamManager.IsFunctional);
 
-        private void Awake()
+        protected override void AwakeSingleton()
         {
             _toggleGroup.OnStateChanged += OnToggleChanged;
             _visibilityEvents.OnShow += LoadEntriesOfActiveToggle;

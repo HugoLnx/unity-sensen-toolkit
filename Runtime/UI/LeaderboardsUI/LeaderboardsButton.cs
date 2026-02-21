@@ -9,7 +9,6 @@ namespace SensenToolkit
     public class LeaderboardsButton : MonoBehaviour
     {
         [SerializeField] private SteamLeaderboardSO _customLeaderboardToShow;
-        [SerializeField, MustBeAssigned] private LeaderboardsPanel _leaderboardsPanel;
         [SerializeField, AutoProperty] private Button _button;
         [SerializeField, AutoProperty]
         private PanelChildVisibilityEvents _visibilityEvents;
@@ -30,7 +29,8 @@ namespace SensenToolkit
 
         private void OnButtonClicked()
         {
-            _leaderboardsPanel.ShowLeaderboard(_customLeaderboardToShow);
+            LeaderboardsPanel panel = LeaderboardsPanel.Instance;
+            panel.ShowLeaderboard(_customLeaderboardToShow);
         }
 
         private void RefreshInteractable()
