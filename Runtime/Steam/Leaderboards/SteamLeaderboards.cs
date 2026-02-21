@@ -33,11 +33,18 @@ namespace SensenToolkit
         private Logx _logger;
         private new Logx Logger => _logger ??= Logx.GetLogger(nameof(SteamLeaderboards), activate: ACTIVATE_LOGS);
 
-        private SteamCallHandler<LeaderboardScoreUploaded_t> _scoreUploaded = new();
-        private SteamCallHandler<LeaderboardScoresDownloaded_t> _entriesAroundPlayerDownloaded = new();
-        private SteamCallHandler<LeaderboardScoresDownloaded_t> _topEntriesDownloaded = new();
-        private SteamCallHandler<LeaderboardScoresDownloaded_t> _friendsEntriesDownloaded = new();
-        private HashSet<GetEntriesApiCall> _lockedGetApiCalls = new();
+        private RoundRobinPool<SteamCallHandler<LeaderboardScoreUploaded_t>> _uploadedCallHandlerPool = new(
+            factory: () => new SteamCallHandler<LeaderboardScoreUploaded_t>(),
+            minSize: 5,
+            maxCreations: 10,
+            prefill: true
+        );
+        private RoundRobinPool<SteamCallHandler<LeaderboardScoresDownloaded_t>> _downloadedCallHandlerPool = new(
+            factory: () => new SteamCallHandler<LeaderboardScoresDownloaded_t>(),
+            minSize: 10,
+            maxCreations: 30,
+            prefill: true
+        );
         private HashSet<SteamLeaderboardSO> _leaderboardsEnsured = new();
         private HashSet<SteamLeaderboardSO> _leaderboardsBeingRequested = new();
 
@@ -255,8 +262,9 @@ namespace SensenToolkit
             SteamLeaderboard_t leaderboardRef = leaderboardSo.SteamRef.Value;
             Logger.Info($"Submiting HighScore Value {value} ({updateMethod})");
             SteamAPICall_t handle = SteamUserStats.UploadLeaderboardScore(leaderboardRef, updateMethod, value, null, 0);
-            yield return this._scoreUploaded.WaitForResult(handle);
-            SteamCallResult<LeaderboardScoreUploaded_t> result = this._scoreUploaded.PopResult();
+            SteamCallHandler<LeaderboardScoreUploaded_t> callHandler = _uploadedCallHandlerPool.Get();
+            yield return callHandler.WaitForResult(handle);
+            SteamCallResult<LeaderboardScoreUploaded_t> result = callHandler.PopResult();
             if (result.IsError)
             {
                 throw new Exception($"Leaderboard submission FAILED {value} ({updateMethod})");
@@ -390,25 +398,15 @@ namespace SensenToolkit
                     realtime: true
                 );
             }
-            if (_lockedGetApiCalls.Contains(getEntriesApiCall))
-            {
-                yield return new WaitWhile(() => _lockedGetApiCalls.Contains(getEntriesApiCall));
-            }
-            _lockedGetApiCalls.Add(getEntriesApiCall);
 
             SteamCallHandler<LeaderboardScoresDownloaded_t> entriesCall;
-            try
-            {
-                yield return _getListResultsPreDelay;
 
-                SteamLeaderboard_t leaderboard = leaderboardSo.SteamRef.Value;
-                entriesCall = getEntriesApiCall(amount, leaderboard);
-                yield return entriesCall.WaitForResult();
-            }
-            finally
-            {
-                _lockedGetApiCalls.Remove(getEntriesApiCall);
-            }
+            yield return _getListResultsPreDelay;
+
+            SteamLeaderboard_t leaderboard = leaderboardSo.SteamRef.Value;
+            entriesCall = getEntriesApiCall(amount, leaderboard);
+            yield return entriesCall.WaitForResult();
+
             LeaderboardScoresDownloaded_t getAllResult = entriesCall.PopResult().Value;
             var entries = new List<LeaderboardEntry>();
             Logger.Info($"Download Leaderboard Entries Result: {getAllResult.m_cEntryCount} {getAllResult.m_hSteamLeaderboard} {getAllResult.m_hSteamLeaderboardEntries}");
@@ -474,11 +472,12 @@ namespace SensenToolkit
         )
         {
             int amountBesidesPlayer = amount - 1;
-            const int AMOUNT_BEFORE_PLAYER = 5;
+            const int AMOUNT_BEFORE_PLAYER = 10;
             int amountAfterPlayer = amountBesidesPlayer - AMOUNT_BEFORE_PLAYER;
             SteamAPICall_t handle = SteamUserStats.DownloadLeaderboardEntries(leaderboard, AROUND_USER, -AMOUNT_BEFORE_PLAYER, amountAfterPlayer);
-            _entriesAroundPlayerDownloaded.SetHandle(handle);
-            return _entriesAroundPlayerDownloaded;
+            SteamCallHandler<LeaderboardScoresDownloaded_t> callHandler = _downloadedCallHandlerPool.Get();
+            callHandler.SetHandle(handle);
+            return callHandler;
         }
 
         private SteamCallHandler<LeaderboardScoresDownloaded_t> ApiCallGetTopGlobalEntries(
@@ -487,8 +486,9 @@ namespace SensenToolkit
         {
             const int TOP_GLOBAL_RANGE_START = 1;
             SteamAPICall_t handle = SteamUserStats.DownloadLeaderboardEntries(leaderboard, TOP_GLOBAL, TOP_GLOBAL_RANGE_START, amount);
-            _topEntriesDownloaded.SetHandle(handle);
-            return _topEntriesDownloaded;
+            SteamCallHandler<LeaderboardScoresDownloaded_t> callHandler = _downloadedCallHandlerPool.Get();
+            callHandler.SetHandle(handle);
+            return callHandler;
         }
 
         private SteamCallHandler<LeaderboardScoresDownloaded_t> ApiCallGetFriendsEntries(
@@ -496,8 +496,9 @@ namespace SensenToolkit
         )
         {
             SteamAPICall_t handle = SteamUserStats.DownloadLeaderboardEntries(leaderboard, FRIENDS_ENTRIES, 0, 0);
-            _friendsEntriesDownloaded.SetHandle(handle);
-            return _friendsEntriesDownloaded;
+            SteamCallHandler<LeaderboardScoresDownloaded_t> callHandler = _downloadedCallHandlerPool.Get();
+            callHandler.SetHandle(handle);
+            return callHandler;
         }
     }
 }

@@ -27,8 +27,7 @@ namespace SensenToolkit
 
         public IEnumerator WaitForResult(SteamAPICall_t? handle = null, bool discardResult = false)
         {
-            var steam = SteamManager.GetInstanceIfExists();
-            if (steam == null || !steam.IsInitialized) throw new System.Exception($"Steam is not initialized");
+            if (!SteamManager.IsFunctional) throw new System.Exception($"Steam is not initialized");
             if (!_handle.HasValue && !handle.HasValue) throw new System.Exception($"No handle to wait for");
             if (_handle.HasValue && handle.HasValue)
             {
