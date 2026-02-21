@@ -50,10 +50,14 @@ namespace SensenToolkit
 
         public int SubmissionsRemainingOnTimeFrame { get; private set; } = RATE_LIMIT_MAX_UPLOADS_PER_TIME_FRAME;
         private HashSet<SteamLeaderboardSO> _leaderboardsWithScheduledSubmission = new();
-        private bool _isSubmitScoreCheckRunning;
-        private WaitForSecondsRealtime _getListResultsPreDelay = new(0.2f);
-        private bool _isWaitingDelayBetweenSubmissions = false;
-        private Coroutine _delayBetweenSubmissionsCoroutine;
+        [NonSerialized] private Coroutine _submitScoreLoopCoroutine;
+        [NonSerialized] private WaitForSecondsRealtime _getListResultsPreDelay = new(0.2f);
+        [NonSerialized] private bool _isWaitingDelayBetweenSubmissions = false;
+        [NonSerialized] private Coroutine _delayBetweenSubmissionsCoroutine;
+        [NonSerialized] private bool _isBooted;
+        [NonSerialized] private bool _isInitialized;
+
+        public bool IsFunctional => _isBooted && _isInitialized;
 
         public delegate void RankingChangedEvent(
             int newRanking,
@@ -72,10 +76,10 @@ namespace SensenToolkit
 
         private void OnEnable()
         {
-            StartCoroutine(ScheduleInitialization());
+            StartCoroutine(BootCoroutine());
         }
 
-        private IEnumerator ScheduleInitialization()
+        private IEnumerator BootCoroutine()
         {
             var bootBlackout = AppBootBlackoutService.GetInstanceIfExists();
             bootBlackout.HoldBlackout(this);
@@ -86,8 +90,10 @@ namespace SensenToolkit
                 {
                     yield return EnsureLeaderboard(leaderboardSO);
                 }
+                _isInitialized = true;
             }
             bootBlackout.ReleaseBlackout(this);
+            _isBooted = true;
         }
 
         private IEnumerator EnsureLeaderboard(SteamLeaderboardSO leaderboardSo)
@@ -135,11 +141,11 @@ namespace SensenToolkit
             }
         }
 
-        public void ForceSkipDelayBetweenSubmissionsOnce()
+        public void ForceSkipDelayBetweenSubmissionsOnce(bool ensureLoop = true)
         {
             _isWaitingDelayBetweenSubmissions = false;
             Coroutinesx.KillAndNullify(this, ref _delayBetweenSubmissionsCoroutine);
-            EnsureCheckSubmitScoreLoop();
+            if (ensureLoop) EnsureCheckSubmitScoreLoop();
         }
 
         public void ScheduleValueSubmission(
@@ -169,7 +175,14 @@ namespace SensenToolkit
                 leaderboard.ScheduledToSubmit = newSubmission;
                 _leaderboardsWithScheduledSubmission.Add(leaderboard);
 
-                if (!delayed) ForceSkipDelayBetweenSubmissionsOnce();
+                if (!delayed) ForceSkipDelayBetweenSubmissionsOnce(ensureLoop: false);
+            }
+            else
+            {
+                ScoreSubmission? currentSubmission = leaderboard.ScheduledToSubmit;
+                int currentScheduled = currentSubmission.HasValue ? currentSubmission.Value.Value : 0;
+                bool isBestThanScheduled = leaderboard.ScoreIsBestThanScheduled(value);
+                Logger.Info($"Ignored score scheduling for '{leaderboard.BoardName}' value:{value} currentScheduled:{currentScheduled} isBestThanScheduled:{isBestThanScheduled}");
             }
 
             EnsureCheckSubmitScoreLoop();
@@ -177,17 +190,18 @@ namespace SensenToolkit
 
         private void EnsureCheckSubmitScoreLoop()
         {
-            if (!SteamManager.IsFunctional
+            bool skipSubmitLoop = !SteamManager.IsFunctional
                 || _leaderboardsWithScheduledSubmission.Count == 0
-                || _isSubmitScoreCheckRunning) return;
-            _isSubmitScoreCheckRunning = true;
-            StartCoroutine(CheckSubmitScoreLoop());
+                || _submitScoreLoopCoroutine != null;
+            // Logger.Info($"EnsureCheckSubmitScoreLoop - Skip:{skipSubmitLoop} (IsFunctional:{SteamManager.IsFunctional} | HasScheduledSubmissions:{_leaderboardsWithScheduledSubmission.Count > 0} | IsLoopRunning:{_submitScoreLoopCoroutine != null})");
+            if (skipSubmitLoop) return;
+            _submitScoreLoopCoroutine = StartCoroutine(CheckSubmitScoreLoop());
         }
 
         private IEnumerator CheckSubmitScoreLoop()
         {
-            yield return SteamManager.WaitBooted();
-            if (!SteamManager.IsFunctional) yield break;
+            yield return new WaitUntil(() => _isBooted);
+            if (!IsFunctional) yield break;
             List<SteamLeaderboardSO> toSubmit = new();
             while (true)
             {
@@ -217,7 +231,7 @@ namespace SensenToolkit
                 if (hasSubmitted) EnsureDelayBetweenSubmissionsCoroutine();
                 if (_leaderboardsWithScheduledSubmission.Count == 0)
                 {
-                    _isSubmitScoreCheckRunning = false;
+                    _submitScoreLoopCoroutine = null;
                     yield break;
                 }
             }
@@ -229,16 +243,16 @@ namespace SensenToolkit
             if (!hasSubmission) return true;
 
             ScoreSubmission submission = leaderboard.ScheduledToSubmit.Value;
-            int currentScore = await GetCurrentScoreValue(leaderboard);
-            Logger.Info($"CurrentRemoteScore: {currentScore}");
-            if (submission.Value == currentScore) return true;
+            int remoteScore = await GetRemoteCurrentScoreValue(leaderboard);
+            Logger.Info($"CurrentRemoteScore: {remoteScore}");
+            if (submission.Value == remoteScore) return true;
             if (submission.UpdateMethod == FORCE_UPDATE) return false;
-            return submission.Value == currentScore
+            return submission.Value == remoteScore
                 || (submission.UpdateMethod == KEEP_BEST
-                    && !leaderboard.ScoreIsBestThanScheduled(currentScore));
+                    && leaderboard.ScoreIsBestThanScheduled(remoteScore));
         }
 
-        private async UniTask<int> GetCurrentScoreValue(SteamLeaderboardSO leaderboardSo)
+        private async UniTask<int> GetRemoteCurrentScoreValue(SteamLeaderboardSO leaderboardSo)
         {
             var result = new LeaderboardGetAllResult();
             await GetListResults(
@@ -271,7 +285,9 @@ namespace SensenToolkit
             }
 
             LeaderboardScoreUploaded_t steamResult = result.Value;
-            bool wasSuccessful = steamResult.m_bSuccess == 1;
+            bool wasSuccessful = steamResult.m_bSuccess == 1
+                && steamResult.m_bScoreChanged == 1
+                && steamResult.m_nScore == value;
             // Logger.Info($"Score Upload Result: {boardName}/{value} {(wasSuccessful ? "SUCCESS" : "FAIL")}: {steamResult.m_nGlobalRankPrevious} ~> {steamResult.m_nGlobalRankNew}  (score:{steamResult.m_nScore})");
             ScoreSubmission? currentSubmission = leaderboardSo.ScheduledToSubmit;
             if (currentSubmission == null
@@ -294,7 +310,15 @@ namespace SensenToolkit
                 );
             }
             bool isScoreZero = steamResult.m_nScore <= 0;
-            if (wasSuccessful && !isScoreZero)
+            if (!wasSuccessful)
+            {
+                Logger.Info($"[ScoreSubmit] FAILED {value} ({updateMethod})");
+            }
+            else if (isScoreZero)
+            {
+                Logger.Info($"[ScoreSubmit] IGNORED (score is zero) {value} ({updateMethod})");
+            }
+            else
             {
                 Logger.Info($"[ScoreSubmit] SUCCESS {value} ({updateMethod})");
                 OnReceivedPlayerScore?.Invoke(
@@ -302,20 +326,13 @@ namespace SensenToolkit
                     leaderboard: leaderboardSo
                 );
             }
-            else if (!wasSuccessful)
-            {
-                Logger.Info($"[ScoreSubmit] FAILED {value} ({updateMethod})");
-            }
-            else
-            {
-                Logger.Info($"[ScoreSubmit] IGNORED (score is zero) {value} ({updateMethod})");
-            }
         }
 
         private void EnsureDelayBetweenSubmissionsCoroutine()
         {
             if (_isWaitingDelayBetweenSubmissions) return;
             _isWaitingDelayBetweenSubmissions = true;
+            Coroutinesx.KillAndNullify(this, ref _delayBetweenSubmissionsCoroutine);
             _delayBetweenSubmissionsCoroutine = StartCoroutine(CoroutineDelayBetweenSubmissions());
         }
 
@@ -349,7 +366,7 @@ namespace SensenToolkit
 
         public LeaderboardGetAllResult DownloadEntriesAroundPlayer(SteamLeaderboardSO leaderboard, int amount = 10)
         {
-            if (!SteamManager.IsFunctional) return null;
+            if (!IsFunctional) return null;
             var result = new LeaderboardGetAllResult();
             StartCoroutine(GetListResults(leaderboard, result, amount, ApiCallGetEntriesAroundPlayer));
             return result;
@@ -357,7 +374,7 @@ namespace SensenToolkit
 
         public LeaderboardGetAllResult DownloadTopGlobalEntries(SteamLeaderboardSO leaderboard, int amount = 10)
         {
-            if (!SteamManager.IsFunctional) return null;
+            if (!IsFunctional) return null;
             var result = new LeaderboardGetAllResult();
             StartCoroutine(GetListResults(leaderboard, result, amount, ApiCallGetTopGlobalEntries));
             return result;
@@ -365,7 +382,7 @@ namespace SensenToolkit
 
         public LeaderboardGetAllResult DownloadFriendsEntries(SteamLeaderboardSO leaderboard, int? maxAmount = null)
         {
-            if (!SteamManager.IsFunctional) return null;
+            if (!IsFunctional) return null;
             var result = new LeaderboardGetAllResult();
             StartCoroutine(GetListResults(leaderboard, result, maxAmount ?? -1, ApiCallGetFriendsEntries));
             return result;
@@ -379,6 +396,8 @@ namespace SensenToolkit
             bool waitSubmissionsToComplete = true
         )
         {
+            yield return new WaitUntil(() => _isBooted);
+            if (!IsFunctional) yield break;
             if (!_leaderboardsEnsured.Contains(leaderboardSo))
             {
                 throw new InvalidOperationException($"Leaderboard '{leaderboardSo.BoardName}' must be ensured before downloading entries");
@@ -391,9 +410,9 @@ namespace SensenToolkit
             }
             if (waitSubmissionsToComplete)
             {
-                if (_isSubmitScoreCheckRunning) ForceSkipDelayBetweenSubmissionsOnce();
+                if (_submitScoreLoopCoroutine != null) ForceSkipDelayBetweenSubmissionsOnce();
                 yield return Coroutinesx.TimedWaitWhile(
-                    () => _isSubmitScoreCheckRunning,
+                    () => _submitScoreLoopCoroutine != null,
                     1f,
                     realtime: true
                 );

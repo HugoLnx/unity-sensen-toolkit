@@ -31,6 +31,7 @@ namespace SensenToolkit
 
         private void EnsureTextAnimation()
         {
+            // Debug.Log($"[{nameof(QuickLoadingTextAnimation)}] Show{" hasCoroutine".If(_animationCoroutine != null)}");
             if (_animationCoroutine != null) return;
             string loadingStr = _loadingI18n.GetLocalizedString();
             loadingStr = Regex.Replace(loadingStr, @"\.", "");
@@ -42,7 +43,7 @@ namespace SensenToolkit
 
         private IEnumerator TextAnimationCoroutine()
         {
-            WaitForSeconds waitBetweenFrames = new(_loopDurationSecs / _textStates.Count);
+            WaitForSecondsRealtime waitBetweenFrames = new(_loopDurationSecs / _textStates.Count);
             int inx = 0;
             while (_textStates != null)
             {
@@ -54,6 +55,7 @@ namespace SensenToolkit
 
         private void StopTextAnimation()
         {
+            // Debug.Log($"[{nameof(QuickLoadingTextAnimation)}] Hide{" hasCoroutine".If(_animationCoroutine != null)}");
             Coroutinesx.KillAndNullify(this, ref _animationCoroutine);
             _textStates = null;
         }

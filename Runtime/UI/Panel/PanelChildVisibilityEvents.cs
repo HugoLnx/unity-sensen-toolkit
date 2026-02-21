@@ -1,4 +1,5 @@
 ﻿using System;
+using Cysharp.Threading.Tasks;
 using MyBox;
 using UnityEngine;
 
@@ -12,7 +13,9 @@ namespace SensenToolkit
         public event Action<bool> OnVisibilityChanged = delegate { };
         public event Action OnShow = delegate { };
         public event Action OnHidden = delegate { };
-        public bool IsVisible => _parentPanel == null || _parentPanel.IsVisible;
+        public bool IsVisible => this != null
+            && gameObject != null && gameObject.activeInHierarchy
+            && (_parentPanel == null || _parentPanel.IsVisible);
 
         private void Awake()
         {
@@ -49,7 +52,7 @@ namespace SensenToolkit
 
         private void ParentPanel_OnPrepareToShow(PanelFadable fadable)
         {
-            TriggerVisibilityChange(visible: true);
+            TriggerVisibilityIfVisible();
         }
 
         private void ParentPanel_OnHidden(PanelFadable fadable)
@@ -66,7 +69,7 @@ namespace SensenToolkit
 
         private void TriggerVisibilityIfVisible()
         {
-            if (_parentPanel == null || _parentPanel.IsVisible) TriggerVisibilityChange(visible: true);
+            if (IsVisible) TriggerVisibilityChange(visible: true);
         }
     }
 }

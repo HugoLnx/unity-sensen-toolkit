@@ -53,6 +53,7 @@ namespace SensenToolkit
         {
             _toggleGroup.OnStateChanged += OnToggleChanged;
             _visibilityEvents.OnShow += LoadEntriesOfActiveToggle;
+            _visibilityEvents.OnHidden += OnHidden;
         }
 
         public void ShowLeaderboard(SteamLeaderboardSO leaderboard = null)
@@ -182,12 +183,14 @@ namespace SensenToolkit
 
         private void SetupLoading()
         {
-            _fadableContent.ApplyWhenHidden(() =>
-            {
-                ShowLoading();
-                ClearContent();
-            });
+            _fadableContent.ApplyWhenHidden(SetupLoadingNow);
             _fadableContent.HideAndReshowFading();
+        }
+
+        private void SetupLoadingNow()
+        {
+            ShowLoading();
+            ClearContent();
         }
 
         private void ShowLoading()
@@ -228,6 +231,8 @@ namespace SensenToolkit
             _entryRowsContainer
                 .transform.DestroyAllChildren();
         }
+
+        private void OnHidden() => SetupLoadingNow();
 
         private bool CheckIsReady()
         {
