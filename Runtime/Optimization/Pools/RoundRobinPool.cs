@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SensenToolkit
@@ -10,6 +10,7 @@ namespace SensenToolkit
         private readonly int _minSize;
         private readonly int _maxCreations;
         private int _nextResourceIndex;
+        private List<T> _creations = new();
         public HashSet<T> Creations { get; } = new();
 
         public RoundRobinPool(
@@ -29,7 +30,7 @@ namespace SensenToolkit
 
         public void Prefill()
         {
-            while (Creations.Count < _minSize)
+            while (_creations.Count < _minSize)
             {
                 Grow();
             }
@@ -37,7 +38,7 @@ namespace SensenToolkit
 
         public T Get()
         {
-            if (Creations.Count < _maxCreations && _resources[_nextResourceIndex] == null)
+            if (_creations.Count < _maxCreations && _resources[_nextResourceIndex] == null)
             {
                 Grow();
             }
@@ -46,18 +47,20 @@ namespace SensenToolkit
 
         private void Grow()
         {
-            if (Creations.Count >= _maxCreations)
+            if (_creations.Count >= _maxCreations)
             {
                 throw new InvalidOperationException("Pool has reached max it should create");
             }
             T creation = _factory();
+            _creations.Add(creation);
             Creations.Add(creation);
-            _resources[_nextResourceIndex] = creation;
+            _resources[_creations.Count - 1] = creation;
         }
 
         private T GetNextResourceAndUpdateIndex()
         {
             T resource = _resources[_nextResourceIndex];
+            Assertx.IsNotNull(resource, $"Resource at index {_nextResourceIndex} is null, this should not happen");
             _nextResourceIndex = (_nextResourceIndex + 1) % _resources.Length;
             return resource;
         }
