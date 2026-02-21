@@ -12,8 +12,8 @@ namespace SensenToolkit
     {
         [SerializeField] private Color _normalColor = Color.white;
         [SerializeField] private Color _disabledColor = Color.red;
-        [SerializeField, AutoProperty(AutoPropertyMode.Parent, allowEmpty: true)]
-        private PanelFadable _parentPanel;
+        [SerializeField, AutoProperty]
+        private PanelChildVisibilityEvents _visibilityEvents;
 
         [SerializeField, AutoProperty(AutoPropertyMode.Parent)]
         private Button _button;
@@ -21,21 +21,14 @@ namespace SensenToolkit
         [SerializeField, AutoProperty(AutoPropertyMode.Children)]
         private TMP_Text _text;
 
-        private void OnEnable()
+        private void Awake()
         {
-            if (_parentPanel != null)
-            {
-                _parentPanel.OnPrepareToShow += OnPrepareToShow;
-            }
-            StartCoroutine(DelayedRefreshStyling());
+            _visibilityEvents.OnShow += OnShow;
         }
 
-        private void OnDisable()
+        private void OnEnable()
         {
-            if (_parentPanel != null)
-            {
-                _parentPanel.OnPrepareToShow -= OnPrepareToShow;
-            }
+            StartCoroutine(DelayedRefreshStyling());
         }
 
         private void Start()
@@ -43,8 +36,7 @@ namespace SensenToolkit
             StartCoroutine(DelayedRefreshStyling());
         }
 
-        private void OnPrepareToShow(PanelFadable fadable)
-            => StartCoroutine(DelayedRefreshStyling());
+        private void OnShow() => StartCoroutine(DelayedRefreshStyling());
 
         private IEnumerator DelayedRefreshStyling()
         {

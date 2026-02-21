@@ -1,4 +1,4 @@
-#if DOTWEEN
+﻿#if DOTWEEN
 using System;
 using System.Collections.Generic;
 using DG.Tweening;
@@ -18,6 +18,7 @@ namespace SensenToolkit
         private Tween _tween;
 
         private bool IsHidden => _canvasGroup.alpha <= 0f || (_parentPanel != null && !_parentPanel.IsVisible);
+        public bool HasChangesToApply => _changesQueue.Count > 0;
 
         private void Awake()
         {

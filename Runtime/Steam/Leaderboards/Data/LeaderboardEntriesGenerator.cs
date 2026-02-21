@@ -31,6 +31,10 @@ namespace SensenToolkit
         public static LeaderboardEntriesGenerator Instance => s_instance ??= new LeaderboardEntriesGenerator();
         private static LeaderboardEntriesGenerator s_instance;
         private LeaderboardEntriesGenerator() { }
+        public LeaderboardGetAllResult GenerateResult(SteamLeaderboardSO leaderboard, int amount)
+        {
+            return GenerateResult(amount, leaderboard.DisplayType, leaderboard.SortMethod);
+        }
         public LeaderboardGetAllResult GenerateResult(
             int amount,
             ELeaderboardDisplayType displayType = default,

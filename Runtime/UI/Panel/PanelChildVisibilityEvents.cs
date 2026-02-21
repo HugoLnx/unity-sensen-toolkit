@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using MyBox;
 using UnityEngine;
 
@@ -6,7 +6,7 @@ namespace SensenToolkit
 {
     public class PanelChildVisibilityEvents : MonoBehaviour
     {
-        [SerializeField, AutoProperty(AutoPropertyMode.Parent)]
+        [SerializeField, AutoProperty(AutoPropertyMode.Parent, allowEmpty: true)]
         private PanelFadable _parentPanel;
 
         public event Action<bool> OnVisibilityChanged = delegate { };
@@ -34,12 +34,17 @@ namespace SensenToolkit
 
         private void OnEnable()
         {
-            if (_parentPanel == null) TriggerVisibilityChange(visible: true);
+            TriggerVisibilityIfVisible();
+            var bootBlackout = AppBootBlackoutService.GetInstanceIfExists();
+            if (bootBlackout != null)
+            {
+                bootBlackout.TryAddListenerBlackoutOver(TriggerVisibilityIfVisible);
+            }
         }
 
         private void OnDisable()
         {
-            if (_parentPanel == null) TriggerVisibilityChange(visible: false);
+            TriggerVisibilityChange(visible: false);
         }
 
         private void ParentPanel_OnPrepareToShow(PanelFadable fadable)
@@ -57,6 +62,11 @@ namespace SensenToolkit
             OnVisibilityChanged.Invoke(visible);
             if (visible) OnShow.Invoke();
             else OnHidden.Invoke();
+        }
+
+        private void TriggerVisibilityIfVisible()
+        {
+            if (_parentPanel == null || _parentPanel.IsVisible) TriggerVisibilityChange(visible: true);
         }
     }
 }

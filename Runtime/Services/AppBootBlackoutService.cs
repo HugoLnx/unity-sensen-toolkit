@@ -21,6 +21,7 @@ namespace SensenToolkit
         private MultiHolderHub HoldersHub => _holdersHub ??= new(onChanged: OnHoldersChanged);
         public bool IsBlackoutActive => HoldersHub.IsHolding;
 
+        // TODO: Deprecate this and use only AddListenerBlackoutOver
         public event Action OnBlackoutIsOver = delegate { };
 
         private IEnumerator Start()
@@ -33,6 +34,22 @@ namespace SensenToolkit
             yield return null;
             yield return null;
             TryEndBlackout();
+        }
+
+        public void TryAddListenerBlackoutOver(Action action)
+        {
+            if (_isBlackoutOver) return;
+            OnBlackoutIsOver += action;
+        }
+
+        public void AddListenerOrExecuteBlackoutOver(Action action)
+        {
+            if (_isBlackoutOver)
+            {
+                action.Invoke();
+                return;
+            }
+            OnBlackoutIsOver += action;
         }
 
         protected override void OnDestroyExcess()
