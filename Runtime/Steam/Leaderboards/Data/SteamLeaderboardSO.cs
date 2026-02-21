@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MyBox;
 using Steamworks;
 using UnityEngine;
@@ -13,6 +14,7 @@ namespace SensenToolkit
 
         [SerializeField] private bool _useEnvSuffix = true;
         [SerializeField] private bool _forceBoardName = false;
+        [SerializeField] private string _editorExtraSuffix = "v00";
         [ConditionalField(nameof(_forceBoardName))]
         [SerializeField] private string _forcedBoardName;
         [Tooltip("The type of data to display in the leaderboard, used to create leaderboards dynamically and define default sort method.")]
@@ -37,7 +39,7 @@ namespace SensenToolkit
         public SteamLeaderboard_t? SteamRef { get; set; } = null;
         public ScoreSubmission? ScheduledToSubmit { get; set; } = null;
 
-        private bool HigherIsBest => _sortMethodCfg == ELeaderboardSortMethod.k_ELeaderboardSortMethodDescending;
+        private bool HigherIsBest => SortMethod == ELeaderboardSortMethod.k_ELeaderboardSortMethodDescending;
 
         private void Setup()
         {
@@ -86,9 +88,14 @@ namespace SensenToolkit
 
         private string BuildBoardName()
         {
-            if (!_useEnvSuffix) return _baseBoardName;
-            string envSuffix = Env.GetEnvId();
-            return $"{_baseBoardName}-{envSuffix}";
+            List<string> nameParts = new();
+            nameParts.Add(_baseBoardName);
+            if (_useEnvSuffix) nameParts.Add(Env.GetEnvId());
+            if (Application.isEditor && !string.IsNullOrEmpty(_editorExtraSuffix))
+            {
+                nameParts.Add(_editorExtraSuffix);
+            }
+            return string.Join(":", nameParts);
         }
 
         private static ELeaderboardSortMethod ChooseDefaultSortMethod(ELeaderboardDisplayType displayType)
