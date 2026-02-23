@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
 
@@ -12,7 +12,9 @@ namespace SensenToolkit
         private string _name;
         private int _id;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || SENSEN_DEBUG_BUILD
+        // TODO: That isn't called if class doesn't inherits from MonoBehaviour,
+        // so we need to find another way to initialize loggers in that case
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Initialize()
         {
@@ -30,7 +32,7 @@ namespace SensenToolkit
 
         public static Logx GetLogger(string loggerName = null, bool activate = false)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || SENSEN_DEBUG_BUILD
             loggerName ??= "";
             int loggerId = loggerName.GetHashCode();
             if (activate || string.IsNullOrEmpty(loggerName))
@@ -52,7 +54,7 @@ namespace SensenToolkit
             _id = id ?? name.GetHashCode();
         }
 
-        [Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("UNITY_EDITOR"), Conditional("SENSEN_DEBUG_BUILD")]
         public void Info(object message, string loggerName = null, string category = null)
         {
             int loggerId;
@@ -73,26 +75,26 @@ namespace SensenToolkit
             UnityEngine.Debug.Log($"[{loggerName}] {message}");
         }
 
-        [Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("UNITY_EDITOR"), Conditional("SENSEN_DEBUG_BUILD")]
         public void Info<T>(object message)
         {
             Info(message, loggerName: typeof(T).ToString());
         }
 
-        [Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("UNITY_EDITOR"), Conditional("SENSEN_DEBUG_BUILD")]
         public static void ActivateLogger<T>()
         {
             ActivateLogger(typeof(T).ToString());
         }
 
-        [Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("UNITY_EDITOR"), Conditional("SENSEN_DEBUG_BUILD")]
         public static void ActivateLogger(string loggerName)
         {
             UnityEngine.Debug.Log($"Activating logger: {loggerName}");
             ActivateLogger(loggerName.GetHashCode());
         }
 
-        [Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]
+        [Conditional("UNITY_EDITOR"), Conditional("SENSEN_DEBUG_BUILD")]
         public static void ActivateLogger(int loggerId)
         {
             s_activeLoggers.Add(loggerId);
