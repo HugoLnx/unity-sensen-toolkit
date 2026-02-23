@@ -217,22 +217,6 @@ namespace SensenToolkit
             }
         }
 
-        // Used for debugging only, resets all stats and achievements of the current account
-        [Button]
-        public void ResetStatsAndAchievements()
-        {
-            if (SteamManager.IsFunctional)
-            {
-                SteamUserStats.ResetAllStats(bAchievementsToo: true);
-                SteamUserStats.StoreStats();
-                Debug.Log("Steam Stats and Achievements Reseted");
-            }
-            else
-            {
-                Debug.LogWarning("Steam Manager isn't initialized");
-            }
-        }
-
         private bool CheckIsFunctional(string operationName, string itemName = "")
         {
             if (SteamManager.IsFunctional) return true;

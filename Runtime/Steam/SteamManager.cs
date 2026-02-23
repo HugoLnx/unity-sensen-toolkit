@@ -15,6 +15,7 @@ using UnityEngine;
 using System.Collections;
 using Steamworks;
 using System;
+using EasyButtons;
 #endif
 
 namespace SensenToolkit
@@ -319,6 +320,24 @@ namespace SensenToolkit
                 throw new System.InvalidOperationException("SteamManager is not initialized.");
             }
             return val.Value;
+        }
+
+        // Used for debugging only, resets all stats and achievements of the current account
+        [Button]
+        public void ResetStatsAndAchievementsButton() => ResetStatsAndAchievements();
+
+        public static void ResetStatsAndAchievements()
+        {
+            if (IsFunctional)
+            {
+                SteamUserStats.ResetAllStats(bAchievementsToo: true);
+                SteamUserStats.StoreStats();
+                Debug.Log("Steam Stats and Achievements Reseted");
+            }
+            else
+            {
+                Debug.LogWarning("Steam Manager isn't initialized");
+            }
         }
     }
 }
