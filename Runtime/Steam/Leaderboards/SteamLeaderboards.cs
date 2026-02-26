@@ -159,14 +159,14 @@ namespace SensenToolkit
             bool forceUpdate = false,
             bool delayed = true)
         {
+            if (!IsFunctional)
+            {
+                Logger.Info("Leaderboard submission CANCELED (Steam isn't functional)");
+                return;
+            }
             if (!_leaderboardsEnsured.Contains(leaderboard))
             {
                 throw new InvalidOperationException($"Leaderboard '{leaderboard.BoardName}' must be ensured before submitting scores");
-            }
-            if (!SteamManager.IsFunctional)
-            {
-                Logger.Info("Leaderboard submission CANCELED");
-                return;
             }
 
             if (forceUpdate || leaderboard.ScoreIsBestThanScheduled(value))
