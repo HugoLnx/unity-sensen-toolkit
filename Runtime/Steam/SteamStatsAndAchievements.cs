@@ -137,8 +137,9 @@ namespace SensenToolkit
             return true;
         }
 
-        public bool AddStatInt(ISteamStat stat, int val)
+        public bool AddStatInt(ISteamStat stat, int val, out int outVal)
         {
+            outVal = 0;
             if (!CheckValidStat(stat, nameof(AddStatInt))) return false;
             string name = stat.SteamName;
             if (!CheckIsFunctional(nameof(AddStatInt), name)) return false;
@@ -148,13 +149,19 @@ namespace SensenToolkit
                 return false;
             }
 
-            Debug.Log($"[STEAMWORKS] AddStatInt {name} {currentVal + val}");
+            int newVal = currentVal + val;
+            outVal = newVal;
+            Logger.Info($"[STEAMWORKS] AddStatInt {name} {newVal}");
 
-            return SteamUserStats.SetStat(name, currentVal + val);
+            return SteamUserStats.SetStat(name, newVal);
         }
 
-        public bool AddStatFloat(ISteamStat stat, float val)
+        public bool AddStatInt(ISteamStat stat, int val)
+            => AddStatInt(stat, val, out _);
+
+        public bool AddStatFloat(ISteamStat stat, float val, out float outVal)
         {
+            outVal = 0;
             if (!CheckValidStat(stat, nameof(AddStatFloat))) return false;
             string name = stat.SteamName;
             if (!CheckIsFunctional(nameof(AddStatFloat), name)) return false;
@@ -164,7 +171,12 @@ namespace SensenToolkit
                 return false;
             }
 
-            return SteamUserStats.SetStat(name, currentVal + val);
+
+            float newVal = currentVal + val;
+            outVal = newVal;
+            Logger.Info($"[STEAMWORKS] AddStatFloat {name} {newVal}");
+
+            return SteamUserStats.SetStat(name, newVal);
         }
 
         public bool TryGetStatInt(ISteamStat stat, out int val)
@@ -200,22 +212,37 @@ namespace SensenToolkit
         }
 
         // Set the achievement locally, need to call afterwards StoreStats to submit to Steam
-        public void UnlockAchievement(ISteamAchievement achievement, bool storeStats = true)
+        public bool UnlockAchievement(
+            ISteamAchievement achievement,
+            out bool hasChanged,
+            bool storeStats = true)
         {
-            if (!CheckValidAchievement(achievement, nameof(UnlockAchievement))) return;
+            bool success = false;
+            hasChanged = false;
+            if (!CheckValidAchievement(achievement, nameof(UnlockAchievement))) return success;
             string name = achievement.SteamName;
-            if (!CheckIsFunctional(nameof(UnlockAchievement), name)) return;
+            if (!CheckIsFunctional(nameof(UnlockAchievement), name)) return success;
+            if (SteamUserStats.GetAchievement(name, out bool alreadyUnlocked) && alreadyUnlocked)
+            {
+                Logger.Info($"[STEAMWORKS] Achievement already unlocked: {name}");
+                success = true;
+                return success;
+            }
+
             if (!SteamUserStats.SetAchievement(name))
             {
                 Debug.LogWarning($"[STEAMWORKS] SetAchievement failed: {name}");
-                return;
+                return success;
             }
 
-            if (storeStats)
-            {
-                StoreStats(throttle: true);
-            }
+            hasChanged = true;
+            success = true;
+            if (storeStats) StoreStats(throttle: true);
+            return success;
         }
+
+        public bool UnlockAchievement(ISteamAchievement achievement, bool storeStats = true)
+            => UnlockAchievement(achievement, out _, storeStats);
 
         private bool CheckIsFunctional(string operationName, string itemName = "")
         {
