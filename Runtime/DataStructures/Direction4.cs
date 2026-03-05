@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -66,11 +66,15 @@ namespace SensenToolkit
         public Vector2 AltAxisOnly(Vector2 v)
             => IsHorizontal ? new Vector2(0f, v.y) : new Vector2(v.x, 0f);
 
+        public Vector2 SetMyAxis(Vector2 v, float value)
+            => IsHorizontal ? new Vector2(value, v.y) : new Vector2(v.x, value);
+
         public Vector2 Vector { get; }
         public Vector3 Vector3 { get; }
         public Vector2 AbsVector => new(Mathf.Abs(Vector.x), Mathf.Abs(Vector.y));
         public Vector3 AbsVector3 => new(Mathf.Abs(Vector3.x), Mathf.Abs(Vector3.y), Mathf.Abs(Vector3.z));
         public Vector2Int VectorInt { get; }
+        public RectTransform.Axis RectTransformAxis { get; }
         public float Angle { get; }
 
         public Direction Enum { get; }
@@ -78,6 +82,12 @@ namespace SensenToolkit
 
         public bool IsVertical => Vector.x == 0f;
         public bool IsHorizontal => Vector.y == 0f;
+        public bool IsPositive => Vector.x > 0f || Vector.y > 0f;
+        public bool IsNegative => Vector.x < 0f || Vector.y < 0f;
+        public bool IsUp => this == Up;
+        public bool IsDown => this == Down;
+        public bool IsRight => this == Right;
+        public bool IsLeft => this == Left;
         public Direction4 Opposite => s_oppositeMap[this];
         public Direction4 PerpendicularAntiClockwise => s_perpendicularMap[this].Item1;
         public Direction4 PerpendicularClockwise => s_perpendicularMap[this].Item2;
@@ -91,6 +101,7 @@ namespace SensenToolkit
             this.Angle = vector.Angle();
             this.Enum = directionEnum;
             this.Name = System.Enum.GetName(typeof(Direction), directionEnum);
+            this.RectTransformAxis = IsHorizontal ? RectTransform.Axis.Horizontal : RectTransform.Axis.Vertical;
         }
 
         public static Direction4 FromEnum(Direction v)
