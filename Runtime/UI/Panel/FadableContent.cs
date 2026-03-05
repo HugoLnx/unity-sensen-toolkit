@@ -17,7 +17,9 @@ namespace SensenToolkit
         private Queue<Action> _changesQueue = new();
         private Tween _tween;
 
-        private bool IsHidden => _canvasGroup.alpha <= 0f || (_parentPanel != null && !_parentPanel.IsVisible);
+        private bool IsHidden => _canvasGroup == null
+            || _canvasGroup.alpha <= 0f
+            || (_parentPanel != null && !_parentPanel.IsVisible);
         public bool HasChangesToApply => _changesQueue.Count > 0;
 
         private void Awake()
@@ -26,6 +28,11 @@ namespace SensenToolkit
             {
                 _canvasGroup = GetComponent<CanvasGroup>();
             }
+        }
+
+        private void OnDisable()
+        {
+            Tweenx.KillAndNullify(ref _tween);
         }
 
         public void InstantShow()
