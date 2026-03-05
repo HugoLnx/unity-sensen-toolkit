@@ -41,13 +41,16 @@ namespace SensenToolkit
         private IEnumerator DelayedRefreshStyling()
         {
             RefreshStyling();
-            yield return null;
-            yield return null;
-            RefreshStyling();
+            WaitForSecondsRealtime waitSecs = new(0.05f);
+            for (int i = 0; i < 4; i++)
+            {
+                yield return waitSecs;
+                RefreshStyling();
+            }
         }
 
         [Button]
-        private void RefreshStyling()
+        public void RefreshStyling()
         {
             _text.color = _button.interactable ? _normalColor : _disabledColor;
         }
