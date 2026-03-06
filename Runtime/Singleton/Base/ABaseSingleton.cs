@@ -21,6 +21,9 @@ namespace SensenToolkit.Internal
 
         public static T GetInstanceIfExists()
         {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) return FindFirstObjectByType<T>();
+#endif
             if (HasInstance) return s_instance;
 
             if (AppCore.IsAppBooted && !AppCore.IsAnySceneLoading) return null;
