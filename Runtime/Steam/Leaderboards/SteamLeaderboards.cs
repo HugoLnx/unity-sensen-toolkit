@@ -23,12 +23,7 @@ namespace SensenToolkit
         // and do delays between submission batches to spread out the submissions over time, even when we have slots available,
         // to avoid running out of slots too fast.
         private const float RATE_LIMIT_TIME_FRAME_MINUTES = 10.15f;
-        private const int RATE_LIMIT_MAX_UPLOADS_PER_TIME_FRAME
-#if UNITY_EDITOR
-        = 3;
-#else
-        = 10;
-#endif
+        private const int RATE_LIMIT_MAX_UPLOADS_PER_TIME_FRAME = 10;
         private const float MIN_DELAY_BETWEEN_SUBMISSION_BATCHES_SECONDS = 20f;
         private const float MAX_DELAY_BETWEEN_SUBMISSION_BATCHES_SECONDS = 120f;
 
