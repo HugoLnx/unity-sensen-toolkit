@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using MyBox;
 using SensenToolkit.Internal;
@@ -14,14 +14,11 @@ namespace SensenToolkit
         [SerializeField] private bool _resetToDefaultOnEnable = true;
         [Tooltip("Value to reset.")]
         [SerializeField] private Tvalue _defaultValue;
-        [Tooltip("Forces default to RawValue while its not playing")]
-        [SerializeField] private bool _forceDefaultWhileEditing = true;
         [Tooltip("Forces to use constant value instead of RawValue")]
         [SerializeField] private bool _useConstant = false;
         [SerializeField, ConditionalField(nameof(_useConstant))]
         private Tvalue _constantValue;
         [SerializeField, ReadOnly] protected Tvalue RawValue;
-        [SerializeField, HideInInspector] private bool _wasInitializedInEditor = false;
         private (bool IsSet, Tvalue Value) _prevValue;
         private (bool IsSet, Tvalue Value) _runtimeDefaultValue = (false, default);
 
@@ -51,11 +48,13 @@ namespace SensenToolkit
             {
                 RawValue = DefaultValue;
             }
-            _wasInitializedInEditor = true;
             OnValueChangedExtra = delegate { }; // Unsubscribe all listeners
             OnValueChanged = delegate { }; // Unsubscribe all listeners
 
             AppCore.OnAppBootingEnd += OnAppBootingEnd;
+#if UNITY_EDITOR
+            AppCore.OnAppQuittingEnd += OnAppQuittingEnd;
+#endif
         }
 
         private void OnAppBootingEnd()
@@ -65,25 +64,32 @@ namespace SensenToolkit
         }
 
 #if UNITY_EDITOR
-        protected void OnEnable()
+        private void OnAppQuittingEnd()
         {
-            TryInitializeInEditor();
+            Initialize();
         }
 
-        // protected void OnValidate()
-        // {
-        //     Logger.Info($"OnValidate called. {"isPlaying".If(Application.isPlaying)}{" isRuntime".If(IsRuntime)}");
-        //     TryInitializeInEditor();
-        // }
-
-        private void TryInitializeInEditor()
+        protected void OnEnable()
         {
-            if (
-                IsRuntime
-                || (!_forceDefaultWhileEditing && _wasInitializedInEditor)
-            ) return;
+            TryInitializeInRuntime();
+        }
+
+        private void OnValidate()
+        {
+            TryInitializeInRuntime();
+        }
+
+        private void TryInitializeInRuntime()
+        {
+            if (IsRuntime) return;
+            Initialize();
+        }
+
+        private void Initialize()
+        {
+            if (!Env.IsEditor) return;
+
             Logger.Info("Initializing in editor.");
-            _wasInitializedInEditor = true;
             RawValue = _defaultValue;
             UnityEditor.EditorUtility.SetDirty(this);
         }
