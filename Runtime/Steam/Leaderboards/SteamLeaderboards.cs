@@ -292,7 +292,8 @@ namespace SensenToolkit
             LeaderboardScoreUploaded_t steamResult = result.Value;
             bool wasSuccessful = steamResult.m_bSuccess == 1
                 && steamResult.m_bScoreChanged == 1
-                && steamResult.m_nScore == value;
+                && steamResult.m_nScore == value
+                && steamResult.m_nGlobalRankNew > 0;
             // Logger.Info($"Score Upload Result: {boardName}/{value} {(wasSuccessful ? "SUCCESS" : "FAIL")}: {steamResult.m_nGlobalRankPrevious} ~> {steamResult.m_nGlobalRankNew}  (score:{steamResult.m_nScore})");
             ScoreSubmission? currentSubmission = leaderboardSo.ScheduledToSubmit;
             if (currentSubmission == null
@@ -301,7 +302,8 @@ namespace SensenToolkit
                 leaderboardSo.ScheduledToSubmit = null;
                 _leaderboardsWithScheduledSubmission.Remove(leaderboardSo);
             }
-            bool hasRankingChanged = steamResult.m_nGlobalRankPrevious != steamResult.m_nGlobalRankNew;
+            bool hasRankingChanged = steamResult.m_nGlobalRankPrevious != steamResult.m_nGlobalRankNew
+                && steamResult.m_nGlobalRankNew > 0;
             if (wasSuccessful && hasRankingChanged)
             {
                 int newRanking = steamResult.m_nGlobalRankNew;
