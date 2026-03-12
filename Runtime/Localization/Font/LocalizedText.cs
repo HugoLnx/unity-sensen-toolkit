@@ -10,6 +10,8 @@ namespace SensenToolkit
     public class LocalizedText : MonoBehaviour
     {
         [SerializeField, MustBeAssigned] private LocalizedString _string;
+        [Tooltip("Custom format for the localized string.eg: \"{0} coins\"")]
+        [SerializeField] private string _customFormat;
         [SerializeField, AutoProperty] private TMP_Text _text;
         [SerializeField, AutoProperty] private LocalizationTrigger _localizationTrigger;
 
@@ -32,7 +34,10 @@ namespace SensenToolkit
         private void OnLocalizationTriggered(Locale _)
         {
             if (LocStringx.IsEmptyOrNull(_string)) return;
-            _text.text = _string.GetLocalizedString();
+            string localized = _string.GetLocalizedString();
+            _text.text = string.IsNullOrEmpty(_customFormat)
+                ? localized
+                : string.Format(_customFormat, localized);
         }
     }
 }
