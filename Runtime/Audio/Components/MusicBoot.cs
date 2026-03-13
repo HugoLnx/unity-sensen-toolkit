@@ -1,4 +1,4 @@
-using MyBox;
+﻿using MyBox;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -9,6 +9,7 @@ namespace SensenToolkit
 
         private void Start()
         {
+            if (_bootMusic == null) return;
             MusicService musicService = MusicService.Instance;
             musicService.StopAllAudio();
             musicService.Play(_bootMusic);

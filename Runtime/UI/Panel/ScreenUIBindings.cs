@@ -1,4 +1,4 @@
-#if DOTWEEN
+﻿#if DOTWEEN
 using MyBox;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -21,6 +21,12 @@ namespace SensenToolkit
         private PanelsService _panelsService;
         [SerializeField, AutoProperty(AutoPropertyMode.Scene, allowEmpty: true)]
         private PauseService _pauseService;
+
+        private void Awake()
+        {
+            _panelsService = PanelsService.GetInstanceIfExists();
+            _pauseService = PauseService.GetInstanceIfExists();
+        }
 
         private void OnEnable()
         {

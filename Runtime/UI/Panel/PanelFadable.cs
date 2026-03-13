@@ -67,6 +67,7 @@ namespace SensenToolkit
 
         private void Awake()
         {
+            _panelsService = PanelsService.GetInstanceIfExists();
             if (_hideOnAwake) SetVisibilityTo(false);
             if (_parentPanel != null)
             {
