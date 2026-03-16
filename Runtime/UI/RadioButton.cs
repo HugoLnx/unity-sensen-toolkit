@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using EasyButtons;
 using MyBox;
 using UnityEngine;
@@ -30,6 +30,7 @@ namespace SensenToolkit
 
         private void OnDisable()
         {
+            if (_btn == null) return;
             _btn.onClick.RemoveListener(OnClick);
         }
 
@@ -56,6 +57,7 @@ namespace SensenToolkit
 
         public void SetInteractive(bool interactive)
         {
+            if (_btn == null) return;
             _btn.interactable = interactive;
             if (!interactive) SwitchTo(false, callbacks: false);
         }
@@ -75,12 +77,14 @@ namespace SensenToolkit
         [Button]
         private void StyleAsActive()
         {
+            if (_btn == null) return;
             _btn.colors = _activeColors;
         }
 
         [Button]
         private void StyleAsInactive()
         {
+            if (_btn == null) return;
             _btn.colors = _inactiveColors;
         }
     }

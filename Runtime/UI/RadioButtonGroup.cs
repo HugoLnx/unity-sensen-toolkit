@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks.Triggers;
 using MyBox;
@@ -46,6 +46,11 @@ namespace SensenToolkit
         }
 
         public void SwitchToDefaults() => SwitchTo(-1);
+        public void SwitchTo(RadioButton btn, bool turnOn = true)
+        {
+            EnforceOperation(btn, turnOn);
+        }
+
         public void SwitchTo(int index, bool turnOn = true)
         {
             if (index < 0 || index >= _radioButtons.Length)
