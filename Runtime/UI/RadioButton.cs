@@ -21,7 +21,8 @@ namespace SensenToolkit
             get => _shouldDeactivateOnClick;
             set => _shouldDeactivateOnClick = value;
         }
-        public event Action<RadioButton, bool> OnStateChanged;
+        public delegate void StateChangedHandler(RadioButton button, bool isActive, bool throughClick);
+        public event StateChangedHandler OnStateChanged;
 
         private void OnEnable()
         {
@@ -38,21 +39,21 @@ namespace SensenToolkit
         {
             if (IsActive)
             {
-                if (_shouldDeactivateOnClick) SwitchTo(false);
+                if (_shouldDeactivateOnClick) SwitchTo(false, throughClick: true);
                 else return;
             }
             else
             {
-                SwitchTo(true);
+                SwitchTo(true, throughClick: true);
             }
         }
 
-        public void SwitchTo(bool turnOn, bool callbacks = true)
+        public void SwitchTo(bool turnOn, bool callbacks = true, bool throughClick = false)
         {
             bool hasChanged = IsActive != turnOn;
             IsActive = turnOn;
             RefreshButtonState();
-            if (callbacks && hasChanged) OnStateChanged?.Invoke(this, IsActive);
+            if (callbacks && hasChanged) OnStateChanged?.Invoke(this, IsActive, throughClick);
         }
 
         public void SetInteractive(bool interactive)

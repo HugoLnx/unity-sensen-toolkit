@@ -162,7 +162,7 @@ namespace SensenToolkit
             else ShowNoEntries();
         }
 
-        private void OnToggleChanged()
+        private void OnToggleChanged(bool _)
         {
             RadioButton button = _toggleGroup.ActiveButton;
             if (_lastActiveToggle == button) return;

@@ -1,4 +1,4 @@
-using MyBox;
+﻿using MyBox;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -21,7 +21,7 @@ namespace SensenToolkit
             _tabGroup.OnStateChanged -= OnTabStateChanged;
         }
 
-        private void OnTabStateChanged()
+        private void OnTabStateChanged(bool _)
         {
             RadioButton activeBtn = _tabGroup.ActiveButton;
             foreach (PanelTabLink cfg in _links)

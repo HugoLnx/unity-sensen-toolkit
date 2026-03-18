@@ -13,16 +13,24 @@ namespace SensenToolkit
         [SerializeField] private List<int> _defaultActiveIndexes = new() { 0 };
         [SerializeField, AutoProperty(AutoPropertyMode.Children)]
         private RadioButton[] _radioButtons;
-        private List<int> _activeIndexes = new();
-        private List<RadioButton> _activeButtons = new();
+        [NonSerialized] private List<int> _activeIndexes = new();
+        [NonSerialized] private List<RadioButton> _activeButtons = new();
 
         public IReadOnlyList<int> ActiveIndexes => _activeIndexes;
         public int ActiveIndex => _activeIndexes.Count == 0 ? -1 : _activeIndexes[0];
         public RadioButton ActiveButton => ActiveIndex >= 0 ? _radioButtons[ActiveIndex] : null;
         public IReadOnlyList<RadioButton> ActiveButtons => _activeButtons;
-        private bool _btnBlockOperation = false;
+        [NonSerialized] private bool _btnBlockOperation = false;
 
-        public Action OnStateChanged = delegate { };
+        public delegate void StateChangedHandler(bool throughClick);
+        public event StateChangedHandler OnStateChanged = delegate { };
+
+        private void Awake()
+        {
+            _activeIndexes = new();
+            _activeButtons = new();
+            _btnBlockOperation = false;
+        }
 
         private void Start()
         {
@@ -61,7 +69,7 @@ namespace SensenToolkit
             EnforceOperation(index == -1 ? null : _radioButtons[index], turnOn);
         }
 
-        private void EnforceOperation(RadioButton btn, bool turnOn)
+        private void EnforceOperation(RadioButton btn, bool turnOn, bool throughClick = false)
         {
             if (_btnBlockOperation) return;
 
@@ -70,7 +78,7 @@ namespace SensenToolkit
             _btnBlockOperation = false;
 
             RefreshGroupState();
-            OnStateChanged?.Invoke();
+            OnStateChanged?.Invoke(throughClick);
         }
 
         private void SwitchButtonsToEnforceOperation(RadioButton btn, bool turnOn)
@@ -166,7 +174,7 @@ namespace SensenToolkit
             UnbindAllButtons();
             foreach (RadioButton button in _radioButtons)
             {
-                button.OnStateChanged += EnforceOperation;
+                button.OnStateChanged += OnButtonStateChanged;
             }
         }
 
@@ -174,8 +182,13 @@ namespace SensenToolkit
         {
             foreach (RadioButton button in _radioButtons)
             {
-                button.OnStateChanged -= EnforceOperation;
+                button.OnStateChanged -= OnButtonStateChanged;
             }
+        }
+
+        private void OnButtonStateChanged(RadioButton button, bool isActive, bool throughClick)
+        {
+            EnforceOperation(button, isActive, throughClick);
         }
     }
 }
