@@ -29,6 +29,8 @@ namespace SensenToolkit
         [field: SerializeField] public bool EnableBackSfx { get; private set; } = true;
         [SerializeField] private bool _autoPushToStack = false;
         [SerializeField] private bool _hideOnAwake = true;
+        [Tooltip("If all dominant panels are hidden, the root canvas can be disabled with CanvasAutoDisable component.")]
+        [SerializeField] private bool _forceDominant = false;
         [SerializeField] private PanelFadableSpeed _speedType = PanelFadableSpeed.Normal;
         [SerializeField, ConditionalField(nameof(_speedType), compareValues: PanelFadableSpeed.Custom)]
         private float _showDurationCustom = NORMAL_SHOW_DURATION;
@@ -224,7 +226,7 @@ namespace SensenToolkit
 
         private CanvasGroup GetDominantCanvasGroup()
         {
-            if (_canvasGroup.ignoreParentGroups) return _canvasGroup;
+            if (_forceDominant || _canvasGroup.ignoreParentGroups) return _canvasGroup;
             if (_canvasGroup.transform.parent.TryGetComponentInParent(out CanvasGroup parentCanvasGroup))
             {
                 return parentCanvasGroup;
