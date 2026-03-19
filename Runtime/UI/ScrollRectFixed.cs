@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -9,12 +10,17 @@ namespace SensenToolkit
     public class ScrollRectFixed : ScrollRect, IPointerEnterHandler, IPointerExitHandler
     {
         private bool _scrolledThisFrame = true;
+        private PointerEventData _data;
         private bool _isMouseOver = false;
         private float MouseWheelDeltaY => Mouse.current.scroll.ReadValue().y;
 
         public void OnPointerEnter(PointerEventData eventData)
         {
+            _data = EventSystem.current == null ? null
+                : new PointerEventData(EventSystem.current);
             _isMouseOver = true;
+            StopAllCoroutines();
+            StartCoroutine(LoopScrollCheck());
         }
 
         public void OnPointerExit(PointerEventData eventData)
@@ -22,17 +28,20 @@ namespace SensenToolkit
             _isMouseOver = false;
         }
 
-        private void Update()
+        private IEnumerator LoopScrollCheck()
         {
-            _scrolledThisFrame = false;
-            if (_isMouseOver && IsMouseWheelRolling())
+            while (_isMouseOver && EventSystem.current != null && _data != null)
             {
-                float scrollInput = MouseWheelDeltaY;
-                PointerEventData data = new(EventSystem.current);
-                float scrollY = Time.deltaTime * scrollSensitivity * (scrollInput < 0 ? -1f : 1f);
-                data.scrollDelta = new Vector2(0f, scrollY);
+                _scrolledThisFrame = false;
+                if (_isMouseOver && IsMouseWheelRolling())
+                {
+                    float scrollInput = MouseWheelDeltaY;
+                    float scrollY = Time.deltaTime * scrollSensitivity * (scrollInput < 0 ? -1f : 1f);
+                    _data.scrollDelta = new Vector2(0f, scrollY);
 
-                OnScroll(data);
+                    OnScroll(_data);
+                }
+                yield return null;
             }
         }
 
