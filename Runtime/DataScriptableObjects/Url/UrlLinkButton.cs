@@ -15,7 +15,7 @@ namespace SensenToolkit
         [SerializeField] private string _urlString;
         [SerializeField, AutoProperty] private Button _button;
 
-        private string Url => (_useLooseUrl ? _urlString : _urlSo != null ? _urlSo.name : string.Empty).Trim();
+        private string Url => (_useLooseUrl ? _urlString : _urlSo != null ? _urlSo.Url : string.Empty).Trim();
 
         private void Awake()
         {
@@ -42,6 +42,7 @@ namespace SensenToolkit
                 Debug.LogError($"Url is empty for {gameObject.name}", this);
                 return;
             }
+            Debug.Log($"Opening URL: '{Url}'");
             Application.OpenURL(Url);
         }
     }

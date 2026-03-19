@@ -6,6 +6,7 @@ namespace SensenToolkit
     public class UrlSO : ScriptableObject
     {
         [SerializeField] private string _url;
+        public string Url => _url.Trim();
         public void Open() => Application.OpenURL(_url);
     }
 }
