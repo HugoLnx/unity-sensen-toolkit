@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using EasyButtons;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -7,5 +8,8 @@ namespace SensenToolkit
     public class IntValueSO : AValueSO<int, IntValueSO>
     {
         public override Type ValueType => typeof(int);
+
+        [Button(Mode = ButtonMode.EnabledInPlayMode)]
+        private void SetInt(int value) => Value = value;
     }
 }

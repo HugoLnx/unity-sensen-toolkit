@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using EasyButtons;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -7,5 +8,8 @@ namespace SensenToolkit
     public class FloatValueSO : AValueSO<float, FloatValueSO>
     {
         public override Type ValueType => typeof(float);
+
+        [Button(Mode = ButtonMode.EnabledInPlayMode)]
+        private void SetFloat(float value) => Value = value;
     }
 }

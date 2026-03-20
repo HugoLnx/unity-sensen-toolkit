@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -7,5 +7,6 @@ namespace SensenToolkit
     public class StringValueSO : AValueSO<string, StringValueSO>
     {
         public override Type ValueType => typeof(string);
+        private void SetString(string value) => Value = value;
     }
 }

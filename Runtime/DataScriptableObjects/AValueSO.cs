@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using EasyButtons;
 using MyBox;
 using SensenToolkit.Internal;
 using UnityEngine;
@@ -116,6 +117,7 @@ namespace SensenToolkit
             if (isUsingOldDefault) SetValue(DefaultValue);
         }
 
+        [Button(Mode = ButtonMode.EnabledInPlayMode)]
         public override void ResetToDefault()
         {
             Logger.Info("ResetToDefault called.");

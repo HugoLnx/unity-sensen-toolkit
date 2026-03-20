@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using EasyButtons;
 using UnityEngine;
 
 namespace SensenToolkit
@@ -7,5 +8,8 @@ namespace SensenToolkit
     public class BoolValueSO : AValueSO<bool, BoolValueSO>
     {
         public override Type ValueType => typeof(bool);
+
+        [Button(Mode = ButtonMode.EnabledInPlayMode)]
+        public void Toggle() => Value = !Value;
     }
 }
