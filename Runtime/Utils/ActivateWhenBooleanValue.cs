@@ -23,6 +23,7 @@ namespace SensenToolkit
 
         private void RefreshActiveState()
         {
+            if (this == null || gameObject == null) return;
             gameObject.SetActive(_invert ? !_valueSo.Value : _valueSo.Value);
         }
     }
