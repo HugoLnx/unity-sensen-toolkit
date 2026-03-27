@@ -21,12 +21,13 @@ namespace SensenToolkit
         [NonSerialized] private bool _forceUpdate;
         [NonSerialized] private string _lastText;
 
-        protected void Awake()
+        protected void Start()
         {
             if (MyLocalizationTrigger != null)
             {
                 MyLocalizationTrigger.Subscribe(OnLocalizationTriggered);
             }
+            RestartDelayedRefresh();
         }
 
         protected void OnDestroy()
