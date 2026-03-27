@@ -13,6 +13,7 @@ namespace SensenToolkit
     {
         private static (bool cached, string value) s_buildLocaleCode = (false, null);
         public static bool IsDemoBuild => RawIsDemoBuild || IsBoothBuild;
+        public static bool IsFullGameBuild => !IsDemoBuild && IsProductionBuild;
         public static bool IsDebugBuild => RawIsDebugBuild || IsEditor;
         public static bool IsProductionBuild => !(IsDebugBuild || IsBoothBuild || IsTrailerBuild);
         public static string BuildLocaleCode => ResolveBuildLocaleCode();

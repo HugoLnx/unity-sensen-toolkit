@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using MyBox;
 using UnityEditor;
@@ -38,6 +38,9 @@ namespace SensenToolkit
         [NonSerialized] private Resolution[] _resolutions;
         public Resolution[] Resolutions => _resolutions ??= BuildResolutions();
         [NonSerialized] private string[] _resolutionKeys;
+        private int _lastResolutionWidth;
+        private int _lastResolutionHeight;
+
         public string[] ResolutionKeys => _resolutionKeys ??= BuildResolutionsKeys();
         public static Resolution WindowSize => new()
         {
@@ -53,6 +56,8 @@ namespace SensenToolkit
             height = Display.main.systemHeight,
         };
 
+        public event Action<Resolution> OnResolutionChanged = delegate { };
+
         private void Start()
         {
             Resolution? resolution = _setResolutionManually
@@ -60,6 +65,11 @@ namespace SensenToolkit
                 : null;
             FullScreenMode? mode = _setModeManually ? _forcedMode : null;
             Enforce(resolution, mode);
+        }
+
+        private void Update()
+        {
+            TryInvokeResolutionChanged(Screen.currentResolution);
         }
 
         public void Enforce(Vector2Int resolution, FullScreenMode? mode = null)
@@ -72,6 +82,17 @@ namespace SensenToolkit
             Resolution res = resolution ?? WindowSize;
             FullScreenMode screenMode = mode ?? Screen.fullScreenMode;
             Screen.SetResolution(res.width, res.height, screenMode);
+            TryInvokeResolutionChanged(res);
+        }
+
+        private void TryInvokeResolutionChanged(Resolution newResolution)
+        {
+            int newWidth = newResolution.width;
+            int newHeight = newResolution.height;
+            if (newWidth == _lastResolutionWidth && newHeight == _lastResolutionHeight) return;
+            _lastResolutionWidth = newWidth;
+            _lastResolutionHeight = newHeight;
+            OnResolutionChanged.Invoke(new Resolution { width = newWidth, height = newHeight });
         }
 
         public string[] GetUpdatedResolutionKeys()
