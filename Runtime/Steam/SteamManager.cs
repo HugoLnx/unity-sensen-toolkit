@@ -169,7 +169,7 @@ namespace SensenToolkit
             else
             {
                 Debug.LogWarning("[Steamworks.NET] SteamAPI_Init() failed. Refer to Valve's documentation or the comment above this line for more information.", this);
-                if (Env.IsProductionBuild || Env.IsDemoBuild)
+                if (Env.IsProductionBuild)
                 {
                     Application.Quit();
                     return;
