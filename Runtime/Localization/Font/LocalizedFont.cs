@@ -22,10 +22,27 @@ namespace SensenToolkit
         [SerializeField] private string _testString;
         [SerializeField, AutoProperty] private TMP_Text _text;
         [SerializeField, AutoProperty] private LocalizationTrigger _localizationTrigger;
+        [SerializeField, AutoProperty(allowEmpty: true)]
+        private TextProOnACircle _textOnCircle;
 
         private Dictionary<string, LocalizedFontDataToApply> _finalConfigs;
         private Dictionary<string, LocalizedFontDataToApply> FinalConfigs
             => _finalConfigs != null && _finalConfigs.Count > 0 ? _finalConfigs : RefreshFinalConfigs();
+
+        private float TextCharacterSpacing
+        {
+            get
+            {
+                if (_textOnCircle != null) return _textOnCircle.MaxDegreesPerLetter;
+                return _text.characterSpacing;
+            }
+
+            set
+            {
+                if (_textOnCircle != null) _textOnCircle.MaxDegreesPerLetter = (int)value;
+                else _text.characterSpacing = value;
+            }
+        }
 
 
         private void OnEnable()
@@ -59,9 +76,9 @@ namespace SensenToolkit
             {
                 _baseConfig.Bold = true;
             }
-            if (!Mathf.Approximately(_text.characterSpacing, 0f))
+            if (!Mathf.Approximately(this.TextCharacterSpacing, 0f))
             {
-                _baseConfig.CharacterSpacing = _text.characterSpacing;
+                _baseConfig.CharacterSpacing = this.TextCharacterSpacing;
             }
             if (!Mathf.Approximately(_text.wordSpacing, 0f))
             {
@@ -94,7 +111,7 @@ namespace SensenToolkit
             _text.fontSizeMax = config.FontAutoSize.MaxSize;
             if (config.Bold.Value) _text.fontStyle |= FontStyles.Bold;
             else _text.fontStyle &= ~FontStyles.Bold;
-            _text.characterSpacing = config.CharacterSpacing.Value;
+            this.TextCharacterSpacing = config.CharacterSpacing.Value;
             _text.wordSpacing = config.WordSpacing.Value;
             _text.lineSpacing = config.LineSpacing.Value;
             _text.margin = new Vector4(
