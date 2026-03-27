@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using EasyButtons;
 using MyBox;
 using UnityEngine;
@@ -37,12 +38,17 @@ namespace SensenToolkit
             }
         }
 
-        private void OnResolutionChanged(Resolution _) => RefreshMaxWidthIfVisible();
-        private void OnShow() => RefreshMaxWidth();
-
-        private void RefreshMaxWidthIfVisible()
+        private void OnShow() => StartCoroutine(DelayedRefreshMaxWidth());
+        private void OnResolutionChanged(Resolution _)
         {
             if (!_visibilityEvents.IsVisible) return;
+            StartCoroutine(DelayedRefreshMaxWidth());
+        }
+
+        private IEnumerator DelayedRefreshMaxWidth()
+        {
+            RefreshMaxWidth();
+            yield return null;
             RefreshMaxWidth();
         }
 
