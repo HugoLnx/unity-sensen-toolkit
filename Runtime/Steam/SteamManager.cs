@@ -10,6 +10,10 @@
 #define DISABLESTEAMWORKS
 #endif
 
+#if DISABLESTEAMWORKS || SENSEN_BOOTH_BUILD || SENSEN_NOSTEAM
+#define STEAM_BLOCKINIT
+#endif
+
 using UnityEngine;
 #if !DISABLESTEAMWORKS
 using System.Collections;
@@ -59,7 +63,9 @@ namespace SensenToolkit
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void InitOnPlayMode()
         {
+#if !STEAM_BLOCKINIT
             s_everInitialized = false;
+#endif
             s_resolvedUserId = null;
             s_resolvedUserName = null;
             s_resolvedUserIdHash = null;
@@ -68,7 +74,7 @@ namespace SensenToolkit
         }
 
 
-#if (!DISABLESTEAMWORKS && !SENSEN_BOOTH_BUILD) || UNITY_EDITOR
+#if !STEAM_BLOCKINIT
         private static bool s_everInitialized = false;
         private bool _isInitialized = false;
         public bool IsInitialized => _isInitialized;
