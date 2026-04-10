@@ -4,7 +4,7 @@ namespace SensenToolkit
 {
     public struct LeaderboardEntry
     {
-        public CSteamID UserId;
+        public ulong UserId;
         public int Ranking;
         public string Nickname;
         public int Score;

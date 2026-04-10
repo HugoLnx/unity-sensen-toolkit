@@ -98,6 +98,9 @@ namespace SensenToolkit
 
         private IEnumerator EnsureLeaderboard(SteamLeaderboardSO leaderboardSo)
         {
+#if DISABLESTEAMWORKS
+            yield break;
+#else
             if (_leaderboardsEnsured.Contains(leaderboardSo)) yield break;
             yield return SteamManager.WaitBooted();
             if (!SteamManager.IsFunctional) yield break;
@@ -139,6 +142,7 @@ namespace SensenToolkit
             {
                 _leaderboardsBeingRequested.Remove(leaderboardSo);
             }
+#endif
         }
 
         public void ForceSkipDelayBetweenSubmissionsOnce(bool ensureLoop = true)
@@ -154,6 +158,9 @@ namespace SensenToolkit
             bool forceUpdate = false,
             bool delayed = true)
         {
+#if DISABLESTEAMWORKS
+            return;
+#else
             if (!IsFunctional)
             {
                 Logger.Info("Leaderboard submission CANCELED (Steam isn't functional)");
@@ -186,20 +193,28 @@ namespace SensenToolkit
             }
 
             EnsureCheckSubmitScoreLoop();
+#endif
         }
 
         private void EnsureCheckSubmitScoreLoop()
         {
+#if DISABLESTEAMWORKS
+            return;
+#else
             bool skipSubmitLoop = !SteamManager.IsFunctional
                 || _leaderboardsWithScheduledSubmission.Count == 0
                 || _submitScoreLoopCoroutine != null;
             // Logger.Info($"EnsureCheckSubmitScoreLoop - Skip:{skipSubmitLoop} (IsFunctional:{SteamManager.IsFunctional} | HasScheduledSubmissions:{_leaderboardsWithScheduledSubmission.Count > 0} | IsLoopRunning:{_submitScoreLoopCoroutine != null})");
             if (skipSubmitLoop) return;
             _submitScoreLoopCoroutine = StartCoroutine(CheckSubmitScoreLoop());
+#endif
         }
 
         private IEnumerator CheckSubmitScoreLoop()
         {
+#if DISABLESTEAMWORKS
+            yield break;
+#else
             yield return new WaitUntil(() => _isBooted);
             if (!IsFunctional) yield break;
             List<SteamLeaderboardSO> toSubmit = new();
@@ -235,6 +250,7 @@ namespace SensenToolkit
                     yield break;
                 }
             }
+#endif
         }
 
         private async UniTask<bool> ShouldSkipScoreSubmission(SteamLeaderboardSO leaderboard)
@@ -268,6 +284,9 @@ namespace SensenToolkit
 
         private IEnumerator ScoreSubmissionCoroutine(SteamLeaderboardSO leaderboardSo)
         {
+#if DISABLESTEAMWORKS
+            yield break;
+#else
             yield return WaitAndUseSubmissionRateLimitSlot();
             ScoreSubmission submission = leaderboardSo.ScheduledToSubmit.Value;
             ELeaderboardUploadScoreMethod updateMethod = submission.UpdateMethod;
@@ -328,6 +347,7 @@ namespace SensenToolkit
                     leaderboard: leaderboardSo
                 );
             }
+#endif
         }
 
         private void EnsureDelayBetweenSubmissionsCoroutine()
@@ -398,6 +418,9 @@ namespace SensenToolkit
             bool waitSubmissionsToComplete = true
         )
         {
+#if DISABLESTEAMWORKS
+            yield break;
+#else
             yield return new WaitUntil(() => _isBooted);
             if (!IsFunctional) yield break;
             if (!_leaderboardsEnsured.Contains(leaderboardSo))
@@ -439,7 +462,7 @@ namespace SensenToolkit
                 SteamUserStats.GetDownloadedLeaderboardEntry(getAllResult.m_hSteamLeaderboardEntries, i, out LeaderboardEntry_t leaderboardEntry, null, 0);
                 var entry = new LeaderboardEntry
                 {
-                    UserId = leaderboardEntry.m_steamIDUser,
+                    UserId = (ulong)leaderboardEntry.m_steamIDUser,
                     Ranking = leaderboardEntry.m_nGlobalRank,
                     Score = leaderboardEntry.m_nScore,
                     Nickname = SteamFriends.GetFriendPersonaName(leaderboardEntry.m_steamIDUser),
@@ -449,7 +472,6 @@ namespace SensenToolkit
                 entries.Add(entry);
             }
             result.Entries = entries;
-            CSteamID currentUserId = SteamManager.UserId;
             foreach (LeaderboardEntry entry in entries)
             {
                 if (entry.IsPlayerEntry)
@@ -465,6 +487,7 @@ namespace SensenToolkit
                     leaderboard: leaderboardSo
                 );
             }
+#endif
         }
 
         private IEnumerator WaitAndUseSubmissionRateLimitSlot()
@@ -492,6 +515,9 @@ namespace SensenToolkit
             int amount, SteamLeaderboard_t leaderboard
         )
         {
+#if DISABLESTEAMWORKS
+            return default;
+#else
             int amountBesidesPlayer = amount - 1;
             const int AMOUNT_BEFORE_PLAYER = 10;
             int amountAfterPlayer = amountBesidesPlayer - AMOUNT_BEFORE_PLAYER;
@@ -499,27 +525,36 @@ namespace SensenToolkit
             SteamCallHandler<LeaderboardScoresDownloaded_t> callHandler = _downloadedCallHandlerPool.Get();
             callHandler.SetHandle(handle);
             return callHandler;
+#endif
         }
 
         private SteamCallHandler<LeaderboardScoresDownloaded_t> ApiCallGetTopGlobalEntries(
             int amount, SteamLeaderboard_t leaderboard
         )
         {
+#if DISABLESTEAMWORKS
+            return default;
+#else
             const int TOP_GLOBAL_RANGE_START = 1;
             SteamAPICall_t handle = SteamUserStats.DownloadLeaderboardEntries(leaderboard, TOP_GLOBAL, TOP_GLOBAL_RANGE_START, amount);
             SteamCallHandler<LeaderboardScoresDownloaded_t> callHandler = _downloadedCallHandlerPool.Get();
             callHandler.SetHandle(handle);
             return callHandler;
+#endif
         }
 
         private SteamCallHandler<LeaderboardScoresDownloaded_t> ApiCallGetFriendsEntries(
             int ignoredAmount, SteamLeaderboard_t leaderboard
         )
         {
+#if DISABLESTEAMWORKS
+            return default;
+#else
             SteamAPICall_t handle = SteamUserStats.DownloadLeaderboardEntries(leaderboard, FRIENDS_ENTRIES, 0, 0);
             SteamCallHandler<LeaderboardScoresDownloaded_t> callHandler = _downloadedCallHandlerPool.Get();
             callHandler.SetHandle(handle);
             return callHandler;
+#endif
         }
     }
 }

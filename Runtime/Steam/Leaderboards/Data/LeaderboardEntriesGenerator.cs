@@ -63,7 +63,7 @@ namespace SensenToolkit
             IEnumerable<LeaderboardEntry> entries = EnumerateNicknames(amount)
             .Select((nickname, i) => new LeaderboardEntry
             {
-                UserId = new Steamworks.CSteamID((ulong)i),
+                UserId = (ulong)i,
                 Nickname = nickname,
                 Score = GenerateScoreForDisplayType(displayType),
                 DisplayType = displayType,

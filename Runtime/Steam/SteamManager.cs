@@ -6,20 +6,18 @@
 // Version: 1.0.12
 #if STEAMWORKS_NET
 
-#if !(UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX || STEAMWORKS_WIN || STEAMWORKS_LIN_OSX)
+#if !SENSEN_BOOTH_BUILD && !DISABLESTEAMWORKS && (UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX || STEAMWORKS_WIN || STEAMWORKS_LIN_OSX)
+#define ENABLESTEAMWORKS
+#else
 #define DISABLESTEAMWORKS
 #endif
 
-#if DISABLESTEAMWORKS || SENSEN_BOOTH_BUILD || SENSEN_NOSTEAM
-#define STEAM_BLOCKINIT
-#endif
-
 using UnityEngine;
-#if !DISABLESTEAMWORKS
 using System.Collections;
-using Steamworks;
 using System;
 using EasyButtons;
+#if ENABLESTEAMWORKS
+using Steamworks;
 #endif
 
 namespace SensenToolkit
@@ -35,15 +33,15 @@ namespace SensenToolkit
         [SerializeField] private uint _demoAppId = 0;
 
         public bool IsBooted => IsInitialized || IsDisabled;
-        public AppId_t AppId => (AppId_t)(Env.IsDemoBuild ? _demoAppId : _prodAppId);
+        public uint AppId => Env.IsDemoBuild ? _demoAppId : _prodAppId;
 
-        public static CSteamID UserId => GetIfInitialized(s_userId);
-        public static CGameID GameId => GetIfInitialized(s_gameId);
+        public static ulong UserId => GetIfInitialized(s_userId);
+        public static ulong GameId => GetIfInitialized(s_gameId);
         public static string ResolvedUserName => GetResolved(s_resolvedUserName);
         public static string ResolvedUserId => GetResolved(s_resolvedUserId);
         public static string ResolvedUserIdHash => GetResolved(s_resolvedUserIdHash);
-        private static CSteamID? s_userId = null;
-        private static CGameID? s_gameId = null;
+        private static ulong? s_userId = null;
+        private static ulong? s_gameId = null;
         private static string s_resolvedUserId = null;
         private static string s_resolvedUserName = null;
         private static string s_resolvedUserIdHash = null;
@@ -63,7 +61,7 @@ namespace SensenToolkit
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void InitOnPlayMode()
         {
-#if !STEAM_BLOCKINIT
+#if ENABLESTEAMWORKS
             s_everInitialized = false;
 #endif
             s_resolvedUserId = null;
@@ -74,7 +72,7 @@ namespace SensenToolkit
         }
 
 
-#if !STEAM_BLOCKINIT
+#if ENABLESTEAMWORKS
         private static bool s_everInitialized = false;
         private bool _isInitialized = false;
         public bool IsInitialized => _isInitialized;
@@ -166,8 +164,8 @@ namespace SensenToolkit
             _isInitialized = SteamAPI.Init();
             if (_isInitialized)
             {
-                s_userId = SteamUser.GetSteamID();
-                s_gameId = new CGameID(SteamUtils.GetAppID());
+                s_userId = (ulong)SteamUser.GetSteamID();
+                s_gameId = (ulong)SteamUtils.GetAppID();
                 s_resolvedUserId = s_userId.ToString();
                 s_resolvedUserName = SteamFriends.GetPersonaName();
                 s_resolvedUserIdHash = SimpleHashing.Instance.SHA1Short(s_resolvedUserId);
@@ -236,7 +234,7 @@ namespace SensenToolkit
             SetupGuestUser();
             InvokeBooted();
         }
-#endif // !DISABLESTEAMWORKS
+#endif // ENABLESTEAMWORKS
         private static string ResolveUserIdHash()
         {
             var steamManager = SteamManager.GetInstanceIfExists();
@@ -334,16 +332,16 @@ namespace SensenToolkit
 
         public static void ResetStatsAndAchievements()
         {
+#if ENABLESTEAMWORKS
             if (IsFunctional)
             {
                 SteamUserStats.ResetAllStats(bAchievementsToo: true);
                 SteamUserStats.StoreStats();
                 Debug.Log("Steam Stats and Achievements Reseted");
+                return;
             }
-            else
-            {
-                Debug.LogWarning("Steam Manager isn't initialized");
-            }
+#endif
+            Debug.LogWarning("Steam Manager isn't initialized");
         }
     }
 }

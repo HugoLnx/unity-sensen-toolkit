@@ -27,6 +27,7 @@ namespace SensenToolkit
 
         public IEnumerator WaitForResult(SteamAPICall_t? handle = null, bool discardResult = false)
         {
+#if ENABLESTEAMWORKS
             if (!SteamManager.IsFunctional) throw new System.Exception($"Steam is not initialized");
             if (!_handle.HasValue && !handle.HasValue) throw new System.Exception($"No handle to wait for");
             if (_handle.HasValue && handle.HasValue)
@@ -39,6 +40,10 @@ namespace SensenToolkit
             yield return new WaitUntil(() => _result.HasValue);
             if (discardResult) _result = null;
             _handle = null;
+#else
+            Debug.LogWarning($"SteamCallHandler is not functional because Steamworks is not enabled");
+            yield break;
+#endif
         }
 
         public SteamCallResult<T> PopResult()
