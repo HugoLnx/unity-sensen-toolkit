@@ -1,4 +1,10 @@
-﻿using System;
+﻿#if DISABLESTEAMWORKS || !STEAMWORKS_NET
+#define DISABLESTEAMWORKS
+#else
+#define ENABLESTEAMWORKS
+#endif
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;

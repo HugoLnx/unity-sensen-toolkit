@@ -4,13 +4,17 @@
 // irrevocable license to copy and modify this file as you see fit.
 //
 // Version: 1.0.12
-#if STEAMWORKS_NET
-
-#if !SENSEN_BOOTH_BUILD && !DISABLESTEAMWORKS && (UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX || STEAMWORKS_WIN || STEAMWORKS_LIN_OSX)
-#define ENABLESTEAMWORKS
-#else
+#if DISABLESTEAMWORKS || !STEAMWORKS_NET
 #define DISABLESTEAMWORKS
+#else
+#define ENABLESTEAMWORKS
 #endif
+
+// #if !SENSEN_BOOTH_BUILD && !DISABLESTEAMWORKS && (UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX || STEAMWORKS_WIN || STEAMWORKS_LIN_OSX)
+// #define ENABLESTEAMWORKS
+// #else
+// #define DISABLESTEAMWORKS
+// #endif
 
 using UnityEngine;
 using System.Collections;
@@ -345,5 +349,3 @@ namespace SensenToolkit
         }
     }
 }
-
-#endif // STEAMWORKS_NET

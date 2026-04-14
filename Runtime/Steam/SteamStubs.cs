@@ -1,4 +1,10 @@
-﻿#if DISABLESTEAMWORKS
+﻿#if DISABLESTEAMWORKS || !STEAMWORKS_NET
+#define DISABLESTEAMWORKS
+#else
+#define ENABLESTEAMWORKS
+#endif
+
+#if DISABLESTEAMWORKS
 namespace Steamworks
 {
     public enum ELeaderboardUploadScoreMethod

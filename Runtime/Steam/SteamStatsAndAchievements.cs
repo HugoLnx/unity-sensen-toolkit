@@ -1,4 +1,10 @@
-﻿using System.Collections;
+﻿#if DISABLESTEAMWORKS || !STEAMWORKS_NET
+#define DISABLESTEAMWORKS
+#else
+#define ENABLESTEAMWORKS
+#endif
+
+using System.Collections;
 using MyBox;
 using Steamworks;
 using UnityEngine;
